@@ -1,0 +1,11 @@
+{
+  "name": "greyartifact-contract",
+  "private": true,
+  "scripts": {
+    "api:export": "PYTHONPATH=webserver/src .venv/bin/python webserver/scripts/export_openapi.py",
+    "api:lint": "redocly lint docs/openapi.json"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.62.1"
+  }
+}

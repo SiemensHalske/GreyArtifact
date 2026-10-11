@@ -1,0 +1,31 @@
+FROM golang:1.26-bookworm AS tools
+
+RUN mkdir -p /out && \
+    GOBIN=/out go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.16.0 && \
+    GOBIN=/out go install github.com/projectdiscovery/dnsx/cmd/dnsx@v1.3.1 && \
+    GOBIN=/out go install github.com/projectdiscovery/httpx/cmd/httpx@v1.12.0
+
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src \
+    RUNNER_SUBFINDER_PATH=/opt/greyartifact/bin/subfinder \
+    RUNNER_DNSX_PATH=/opt/greyartifact/bin/dnsx \
+    RUNNER_HTTPX_PATH=/opt/greyartifact/bin/httpx
+
+WORKDIR /app
+
+COPY requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src ./src
+COPY --from=tools /out/subfinder /opt/greyartifact/bin/subfinder
+COPY --from=tools /out/dnsx /opt/greyartifact/bin/dnsx
+COPY --from=tools /out/httpx /opt/greyartifact/bin/httpx
+
+RUN useradd --create-home --uid 10002 greyartifact-runner && \
+    chown -R greyartifact-runner:greyartifact-runner /app
+USER greyartifact-runner
+
+CMD ["python", "src/runner.py"]

@@ -1,0 +1,33 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node.js
+node_modules/
+
+# Local tooling and agent state
+.tools/
+.agents/
+.codex/
+.aws/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+*~
+
+# Runtime output
+*.log

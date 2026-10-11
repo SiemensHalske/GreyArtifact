@@ -1,0 +1,11 @@
+extends:
+  - minimal
+
+rules:
+  security-defined: error
+  no-unresolved-refs: error
+  operation-operationId: off
+  operation-description: off
+  operation-summary: off
+  operation-4xx-response: off
+  no-unused-components: off

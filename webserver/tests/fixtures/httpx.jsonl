@@ -1,0 +1,1 @@
+{"url":"https://api.example.test/","a":["192.0.2.10"],"status_code":200,"title":"Fixture API","webserver":"fixture-server","content_type":"application/json","tls":{"subject_cn":"api.example.test","issuer_cn":"Fixture CA","not_before":"2026-01-01T00:00:00Z","not_after":"2027-01-01T00:00:00Z"}}

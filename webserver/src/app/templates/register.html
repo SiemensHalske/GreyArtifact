@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Registrierung · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("register") }}
+    <main class="dashboard">
+      {{ topbar("Zugang anfragen") }}
+      <div class="dashboard-content registration-page">
+        <section class="hero registration-hero" aria-labelledby="registration-title">
+          <div>
+            <span class="section-kicker">Kontrollierter Zugang</span>
+            <h1 id="registration-title">Registrierung anfragen.</h1>
+            <p>
+              Dein Konto bleibt zunächst inaktiv. Ein Owner des angegebenen
+              Arbeitsbereichs prüft die Anfrage und weist dir eine Rolle zu.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel registration-card" aria-labelledby="registration-form-title">
+          <div class="auth-copy">
+            <span class="panel-number">01</span>
+            <div>
+              <span class="section-kicker">Neue Identität</span>
+              <h2 id="registration-form-title">Zugangsdaten</h2>
+              <p>Das Passwort benötigt mindestens zwölf Zeichen.</p>
+            </div>
+          </div>
+          <form class="login-form" id="standalone-registration-form" novalidate>
+            <label for="registration-username">Benutzername</label>
+            <input id="registration-username" name="username" type="text" autocomplete="username" maxlength="255" required>
+            <label for="registration-display-name">Anzeigename</label>
+            <input id="registration-display-name" name="display_name" type="text" autocomplete="name" maxlength="255">
+            <label for="registration-scope">Arbeitsbereich</label>
+            <input id="registration-scope" name="scope_name" type="text" value="default" maxlength="255" required>
+            <label for="registration-password">Passwort</label>
+            <input id="registration-password" name="password" type="password" autocomplete="new-password" minlength="12" required>
+            <button class="button button-primary" id="standalone-registration-button" type="submit">
+              <span>Freischaltung anfragen</span><span aria-hidden="true">→</span>
+            </button>
+            <p class="form-message" id="standalone-registration-message" role="status" aria-live="polite"></p>
+          </form>
+          <a class="auth-mode-toggle registration-back" href="/">Zurück zur Anmeldung</a>
+        </section>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/register.js') }}"></script>
+{% endblock %}

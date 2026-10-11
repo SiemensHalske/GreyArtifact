@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Administration · GreyArtifact{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("admin") }}
+
+    <main class="dashboard">
+      {{ topbar("Access control") }}
+
+      <div class="dashboard-content admin-content">
+        <section class="admin-hero" aria-labelledby="admin-title">
+          <div>
+            <span class="section-kicker">Identity &amp; access</span>
+            <h1 id="admin-title">Administration.</h1>
+            <p>
+              Registrierungen prüfen, Rollen vergeben und Mitglieder pro
+              Arbeitsbereich verwalten — zentral und scope-isoliert.
+            </p>
+          </div>
+          <a class="button admin-back-link" href="{{ url_for('main.index') }}">
+            <span aria-hidden="true">←</span> Zum Dashboard
+          </a>
+        </section>
+
+        <section class="admin-metrics" aria-label="Administrationsübersicht">
+          <article class="admin-metric admin-metric-accent">
+            <span>Offene Anfragen</span>
+            <strong id="pending-count">—</strong>
+            <small>im aktiven Scope</small>
+          </article>
+          <article class="admin-metric">
+            <span>Mitglieder</span>
+            <strong id="member-count">—</strong>
+            <small>im aktiven Scope</small>
+          </article>
+          <article class="admin-metric">
+            <span>Verwaltbare Scopes</span>
+            <strong id="managed-scope-count">—</strong>
+            <small>mit membership.manage</small>
+          </article>
+        </section>
+
+        <section class="panel admin-login" id="admin-login-panel" aria-labelledby="admin-login-title">
+          <div>
+            <span class="section-kicker">Authentifizierung erforderlich</span>
+            <h2 id="admin-login-title">Admin-Bereich entsperren</h2>
+            <p>
+              Nur Konten mit <code>membership.manage</code> sehen und bearbeiten
+              die Daten eines Arbeitsbereichs.
+            </p>
+          </div>
+          <form class="login-form" id="admin-login-form" novalidate>
+            <label for="admin-username">Benutzername</label>
+            <input id="admin-username" name="username" type="text" autocomplete="username" required>
+            <label for="admin-password">Passwort</label>
+            <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
+            <button class="button button-primary" id="admin-login-button" type="submit">
+              Admin-Zugang öffnen <span aria-hidden="true">→</span>
+            </button>
+            <p class="form-message" id="admin-login-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <div class="admin-app is-hidden" id="admin-app">
+          <section class="admin-toolbar" aria-label="Arbeitsbereich auswählen">
+            <div>
+              <span class="section-kicker">Aktiver Verwaltungsbereich</span>
+              <strong id="active-scope-name">Kein Scope gewählt</strong>
+            </div>
+            <label class="scope-picker">
+              <span>Scope wechseln</span>
+              <select id="admin-scope-select"></select>
+            </label>
+          </section>
+
+          <div class="admin-grid">
+            <section class="panel approval-panel" aria-labelledby="approval-title">
+              <div class="panel-header">
+                <div>
+                  <span class="section-kicker">Freigabe-Queue</span>
+                  <h2 id="approval-title">Offene Registrierungen</h2>
+                  <p class="panel-intro">
+                    Prüfe neue Konten und lege ihre erste Rolle fest. Ohne deine
+                    Freigabe bleibt die Anmeldung gesperrt.
+                  </p>
+                </div>
+                <span class="permission-badge">membership.manage</span>
+              </div>
+              <div class="approval-list" id="registration-list" aria-live="polite"></div>
+            </section>
+
+            <aside class="panel create-account-panel" aria-labelledby="create-account-title">
+              <span class="section-kicker">Direkte Anlage</span>
+              <h2 id="create-account-title">Konto erstellen</h2>
+              <p class="panel-intro">
+                Für interne Konten ohne Registrierungsanfrage.
+              </p>
+              <form class="member-form admin-member-form" id="member-form" novalidate>
+                <div class="admin-form-grid">
+                  <label>
+                    <span>Benutzername</span>
+                    <input name="username" type="text" autocomplete="off" maxlength="255" required>
+                  </label>
+                  <label>
+                    <span>Anzeigename</span>
+                    <input name="display_name" type="text" autocomplete="off" maxlength="255">
+                  </label>
+                  <label>
+                    <span>Initiales Passwort</span>
+                    <input name="password" type="password" autocomplete="new-password" minlength="12" required>
+                  </label>
+                  <label>
+                    <span>Basisrolle</span>
+                    <select name="role" required>
+                      <option value="viewer">Viewer</option>
+                      <option value="researcher">Rechercheur</option>
+                      <option value="analyst">Analyst</option>
+                      <option value="owner">Owner</option>
+                    </select>
+                  </label>
+                  <label class="operator-control">
+                    <input name="pipeline_operator" type="checkbox">
+                    <span>
+                      <strong>Pipeline Operator</strong>
+                      <small>Darf freigegebene Datenpipelines ausführen.</small>
+                    </span>
+                  </label>
+                </div>
+                <button class="button button-primary admin-submit" id="member-submit" type="submit">
+                  Konto anlegen <span aria-hidden="true">＋</span>
+                </button>
+                <p class="form-message" id="member-message" role="status" aria-live="polite"></p>
+              </form>
+            </aside>
+
+            <section class="panel members-panel" aria-labelledby="members-title">
+              <div class="panel-header">
+                <div>
+                  <span class="section-kicker">Scope-Mitgliedschaften</span>
+                  <h2 id="members-title">Aktuelle Mitglieder</h2>
+                </div>
+                <span class="member-total" id="member-total">0 Personen</span>
+              </div>
+              <div class="admin-member-list" id="member-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel audit-panel" aria-labelledby="audit-title">
+              <div class="panel-header">
+                <div>
+                  <span class="section-kicker">Änderungshistorie</span>
+                  <h2 id="audit-title">Rollen-Audit</h2>
+                  <p class="panel-intro">
+                    Append-only Protokoll aller Rollenvergaben und -änderungen
+                    im aktiven Scope.
+                  </p>
+                </div>
+                <span class="permission-badge">membership.manage</span>
+              </div>
+              <div class="audit-list" id="audit-list" aria-live="polite"></div>
+              <button class="button audit-load-more is-hidden" id="audit-load-more" type="button">
+                Weitere Änderungen laden
+              </button>
+            </section>
+          </div>
+        </div>
+
+        <footer class="dashboard-footer">
+          <span>GreyArtifact / access control</span>
+          <span>Jede Aktion bleibt scope-gebunden</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,2 @@
+{"host":"api.example.test","a":["192.0.2.10"],"aaaa":["2001:db8::10"]}
+{"host":"www.example.test","a":["192.0.2.20"],"aaaa":[]}

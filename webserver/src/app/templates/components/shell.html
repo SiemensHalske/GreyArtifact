@@ -1,0 +1,88 @@
+{% macro sidebar(active) %}
+  <aside class="sidebar" aria-label="Hauptnavigation">
+    <a class="brand" href="{{ url_for('main.index') }}" aria-label="GreyArtifact Startseite">
+      <span class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span>
+        <strong>GreyArtifact</strong>
+        <small>Recon vault</small>
+      </span>
+    </a>
+
+    <nav class="nav-list">
+      <a
+        class="nav-link{% if active == 'dashboard' %} is-active{% endif %}"
+        href="{{ url_for('main.index') }}"
+        {% if active == 'dashboard' %}aria-current="page"{% endif %}
+      >
+        <span class="nav-icon" aria-hidden="true">⌂</span>
+        Übersicht
+      </a>
+      <a
+        class="nav-link{% if active == 'admin' %} is-active{% endif %}"
+        href="{{ url_for('main.admin') }}"
+        {% if active == 'admin' %}aria-current="page"{% endif %}
+      >
+        <span class="nav-icon" aria-hidden="true">◆</span>
+        Administration
+      </a>
+      <a
+        class="nav-link{% if active == 'register' %} is-active{% endif %}"
+        href="{{ url_for('main.register') }}"
+        {% if active == 'register' %}aria-current="page"{% endif %}
+      >
+        <span class="nav-icon" aria-hidden="true">＋</span>
+        Registrierung
+      </a>
+      <a class="nav-link" href="{{ url_for('main.index') }}#system-status">
+        <span class="nav-icon" aria-hidden="true">●</span>
+        Systemstatus
+      </a>
+    </nav>
+
+    <div class="guardrail-card">
+      <span class="guardrail-icon" aria-hidden="true">◎</span>
+      <div>
+        <strong>Collection only</strong>
+        <p>Nur bereitgestellte Ergebnisse werden importiert und verwaltet.</p>
+      </div>
+    </div>
+  </aside>
+{% endmacro %}
+
+
+{% macro topbar(context_label) %}
+  <header class="topbar">
+    <a
+      class="mobile-brand"
+      href="{{ url_for('main.index') }}"
+      aria-label="GreyArtifact Startseite"
+    >
+      <span class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+    </a>
+    <div class="topbar-context">
+      <span class="eyebrow">{{ context_label }}</span>
+      <span class="topbar-date" id="current-date"></span>
+    </div>
+    <div class="account-area">
+      <button
+        class="theme-toggle"
+        id="theme-toggle"
+        type="button"
+        aria-label="Helles Farbschema aktivieren"
+        aria-pressed="true"
+      >
+        <span class="theme-icon" id="theme-icon" aria-hidden="true">☀</span>
+        <span id="theme-label">Hell</span>
+      </button>
+      <span class="session-label" id="session-label">Nicht angemeldet</span>
+      <span class="avatar" id="avatar" aria-hidden="true">GA</span>
+      <button class="button button-quiet is-hidden" id="logout-button" type="button">
+        Abmelden
+      </button>
+    </div>
+  </header>
+{% endmacro %}

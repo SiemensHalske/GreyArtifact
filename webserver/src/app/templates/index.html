@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Dashboard · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("dashboard") }}
+
+    <main class="dashboard" id="overview">
+      {{ topbar("Lokaler Workspace") }}
+
+      <div class="dashboard-content">
+        <section class="hero" aria-labelledby="dashboard-title">
+          <div>
+            <span class="section-kicker">Recon-Ergebnisse im Blick</span>
+            <h1 id="dashboard-title">Dein lokales Lagebild.</h1>
+            <p>
+              Verwalte bereitgestellte Ergebnisse nach Arbeitsbereich und Projekt —
+              nachvollziehbar, getrennt und ohne aktive Scan-Funktionen.
+            </p>
+          </div>
+          <div class="health-badge" id="health-badge" data-state="checking">
+            <span class="health-dot" aria-hidden="true"></span>
+            <span id="health-label">API wird geprüft</span>
+          </div>
+        </section>
+
+        <section class="metrics-grid" aria-label="Übersicht">
+          <article class="metric-card metric-primary">
+            <div class="metric-heading">
+              <span>Arbeitsbereiche</span>
+              <span class="metric-symbol" aria-hidden="true">◇</span>
+            </div>
+            <strong class="metric-value" id="scope-count">—</strong>
+            <p>für deine Identität sichtbar</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>Projekte</span>
+              <span class="metric-symbol" aria-hidden="true">▦</span>
+            </div>
+            <strong class="metric-value" id="project-count">—</strong>
+            <p>im gewählten Arbeitsbereich</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>Zugriff</span>
+              <span class="metric-symbol" aria-hidden="true">⌁</span>
+            </div>
+            <strong class="metric-value metric-word" id="access-state">Gesperrt</strong>
+            <p>JWT-geschützte Datensicht</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>API</span>
+              <span class="metric-symbol" aria-hidden="true">↗</span>
+            </div>
+            <strong class="metric-value metric-word" id="api-state">Prüfung</strong>
+            <p>lokaler Anwendungsprozess</p>
+          </article>
+        </section>
+
+        <div class="content-grid">
+          <section class="panel auth-panel" id="auth-panel" aria-labelledby="login-title">
+            <div class="auth-copy">
+              <span class="panel-number">01</span>
+              <div>
+                <span class="section-kicker">Geschützter Bereich</span>
+                <h2 id="login-title">Dashboard entsperren</h2>
+                <p>
+                  Melde dich mit einem freigeschalteten lokalen Konto an oder
+                  sende eine Registrierungsanfrage an einen Workspace-Owner.
+                </p>
+              </div>
+            </div>
+            <div class="auth-actions">
+              <form class="login-form" id="login-form" novalidate>
+                <label for="username">Benutzername</label>
+                <input id="username" name="username" type="text" autocomplete="username" required>
+                <label for="password">Passwort</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <button class="button button-primary" id="login-button" type="submit">
+                  <span>Anmelden</span><span aria-hidden="true">→</span>
+                </button>
+                <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+              </form>
+
+              <form class="login-form is-hidden" id="registration-form" novalidate>
+                <label for="registration-username">Benutzername</label>
+                <input id="registration-username" name="username" type="text" autocomplete="username" maxlength="255" required>
+                <label for="registration-display-name">Anzeigename</label>
+                <input id="registration-display-name" name="display_name" type="text" autocomplete="name" maxlength="255">
+                <label for="registration-scope">Arbeitsbereich</label>
+                <input id="registration-scope" name="scope_name" type="text" value="default" maxlength="255" required>
+                <label for="registration-password">Passwort</label>
+                <input id="registration-password" name="password" type="password" autocomplete="new-password" minlength="12" required>
+                <button class="button button-primary" id="registration-button" type="submit">
+                  <span>Freischaltung anfragen</span><span aria-hidden="true">→</span>
+                </button>
+                <p class="form-message" id="registration-message" role="status" aria-live="polite"></p>
+              </form>
+
+              <button
+                class="auth-mode-toggle"
+                id="auth-mode-toggle"
+                type="button"
+                aria-controls="login-form registration-form"
+                aria-expanded="false"
+              >
+                Noch kein Konto? Registrierung anfragen
+              </button>
+            </div>
+          </section>
+
+          <section class="panel workspace-panel is-hidden" id="workspace-panel" aria-labelledby="workspace-title">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Autorisierte Sicht</span>
+                <h2 id="workspace-title">Arbeitsbereiche</h2>
+              </div>
+              <label class="scope-picker">
+                <span>Aktiver Scope</span>
+                <select id="scope-select" aria-label="Aktiven Arbeitsbereich auswählen"></select>
+              </label>
+            </div>
+            <div class="project-list" id="project-list" aria-live="polite"></div>
+            <form class="compact-form project-create-form" id="project-create-form">
+              <div>
+                <label class="field-label" for="new-project-slug">
+                  Slug
+                  <span
+                    class="field-help"
+                    tabindex="0"
+                    aria-label="Hilfe zum Projekt-Slug"
+                    aria-describedby="new-project-slug-help"
+                  >?</span>
+                  <span class="field-help-content" id="new-project-slug-help" role="tooltip">
+                    Technischer, eindeutiger Kurzname für URLs und die API. Verwende nur Kleinbuchstaben, Zahlen und Bindestriche, zum Beispiel <code>kunde-webshop</code>.
+                  </span>
+                </label>
+                <input id="new-project-slug" name="slug" pattern="[a-z0-9-]+" maxlength="63" required>
+              </div>
+              <div>
+                <label class="field-label" for="new-project-name">
+                  Projektname
+                  <span
+                    class="field-help"
+                    tabindex="0"
+                    aria-label="Hilfe zum Projektnamen"
+                    aria-describedby="new-project-name-help"
+                  >?</span>
+                  <span class="field-help-content" id="new-project-name-help" role="tooltip">
+                    Gut lesbarer Anzeigename des Projekts. Dieser Name erscheint im Dashboard und darf Leerzeichen enthalten.
+                  </span>
+                </label>
+                <input id="new-project-name" name="name" maxlength="255" required>
+              </div>
+              <button class="button button-primary" type="submit">Projekt anlegen</button>
+              <p class="form-message" id="project-create-message" role="status"></p>
+            </form>
+          </section>
+
+          <section class="panel project-workspace is-hidden" id="project-workspace" aria-labelledby="project-workspace-title">
+            <div class="panel-header project-workspace-header">
+              <div>
+                <span class="section-kicker">Manueller Evidence-Workflow</span>
+                <h2 id="project-workspace-title">Projekt</h2>
+                <p id="project-workspace-description"></p>
+              </div>
+              <button class="button button-quiet" id="project-workspace-close" type="button">Schließen</button>
+            </div>
+
+            <div class="workspace-columns">
+              <section class="workspace-section">
+                <h3>Projekt bearbeiten</h3>
+                <form class="compact-form" id="project-edit-form">
+                  <label class="field-label" for="project-edit-slug">
+                    Slug
+                    <span
+                      class="field-help"
+                      tabindex="0"
+                      aria-label="Hilfe zum Projekt-Slug"
+                      aria-describedby="project-edit-slug-help"
+                    >?</span>
+                    <span class="field-help-content" id="project-edit-slug-help" role="tooltip">
+                      Technischer, eindeutiger Kurzname für URLs und die API. Verwende nur Kleinbuchstaben, Zahlen und Bindestriche, zum Beispiel <code>kunde-webshop</code>.
+                    </span>
+                  </label>
+                  <input id="project-edit-slug" name="slug" maxlength="63" required>
+                  <label class="field-label" for="project-edit-name">
+                    Projektname
+                    <span
+                      class="field-help"
+                      tabindex="0"
+                      aria-label="Hilfe zum Projektnamen"
+                      aria-describedby="project-edit-name-help"
+                    >?</span>
+                    <span class="field-help-content" id="project-edit-name-help" role="tooltip">
+                      Gut lesbarer Anzeigename des Projekts. Dieser Name erscheint im Dashboard und darf Leerzeichen enthalten.
+                    </span>
+                  </label>
+                  <input id="project-edit-name" name="name" maxlength="255" required>
+                  <label for="project-edit-description">Beschreibung</label>
+                  <textarea id="project-edit-description" name="description" maxlength="4000"></textarea>
+                  <button class="button button-primary" type="submit">Änderungen speichern</button>
+                  <p class="form-message" id="project-edit-message" role="status"></p>
+                </form>
+              </section>
+
+              <section class="workspace-section">
+                <h3>Report importieren</h3>
+                <form class="compact-form" id="import-form">
+                  <label for="import-tool">Format</label>
+                  <select id="import-tool" name="tool">
+                    <option value="subfinder">Subfinder JSONL</option>
+                    <option value="dnsx">DNSx JSONL</option>
+                    <option value="httpx">ProjectDiscovery HTTPx JSONL</option>
+                  </select>
+                  <label for="import-file">Unverändertes Quellartefakt</label>
+                  <input id="import-file" name="file" type="file" accept=".jsonl,application/x-ndjson,application/json" required>
+                  <button class="button button-primary" type="submit">Hochladen</button>
+                  <p class="form-message" id="import-message" role="status"></p>
+                </form>
+                <div class="record-list" id="import-list"></div>
+              </section>
+            </div>
+
+            <section class="workspace-section workspace-wide">
+              <div class="section-toolbar">
+                <div>
+                  <span class="section-kicker">Normalisierte Sicht</span>
+                  <h3>Assets &amp; Evidenz</h3>
+                </div>
+                <form class="filter-form" id="asset-filter-form">
+                  <input name="q" aria-label="Assets durchsuchen" placeholder="Domain, IP oder URL">
+                  <select name="type" aria-label="Asset-Typ">
+                    <option value="">Alle Typen</option>
+                    <option value="domain">Domains</option>
+                    <option value="ipv4">IPv4</option>
+                    <option value="ipv6">IPv6</option>
+                    <option value="url">URLs</option>
+                    <option value="service_endpoint">Services</option>
+                  </select>
+                  <button class="button button-quiet" type="submit">Filtern</button>
+                </form>
+              </div>
+              <div class="evidence-grid">
+                <div class="record-list" id="asset-list"></div>
+                <div class="evidence-detail empty-state" id="evidence-detail">Asset auswählen, um die Herkunft zu sehen.</div>
+              </div>
+            </section>
+
+            <div class="workspace-columns">
+              <section class="workspace-section">
+                <h3>Engagement anlegen</h3>
+                <form class="compact-form" id="engagement-form">
+                  <label for="engagement-name">Bezeichnung</label>
+                  <input id="engagement-name" name="name" maxlength="255" required>
+                  <label for="engagement-authorization">Autorisierungs-URL</label>
+                  <input id="engagement-authorization" name="authorization_reference" type="url" required>
+                  <div class="date-pair">
+                    <label>Gültig ab<input name="valid_from" type="date" required></label>
+                    <label>Gültig bis<input name="valid_until" type="date" required></label>
+                  </div>
+                  <label for="engagement-allowed">Erlaubte Domains (eine pro Zeile)</label>
+                  <textarea id="engagement-allowed" name="allowed_targets" required></textarea>
+                  <label for="engagement-excluded">Ausgeschlossene Domains</label>
+                  <textarea id="engagement-excluded" name="excluded_targets"></textarea>
+                  <button class="button button-primary" type="submit">Engagement speichern</button>
+                  <p class="form-message" id="engagement-message" role="status"></p>
+                </form>
+                <div class="record-list" id="engagement-list"></div>
+              </section>
+
+              <section class="workspace-section">
+                <div class="section-toolbar">
+                  <h3>Recon-Runs</h3>
+                  <button class="button button-quiet" id="runs-refresh" type="button">Aktualisieren</button>
+                </div>
+                <p class="section-note">Nur das feste Profil <code>domain_basic_v1</code>; Ausführung erfolgt im separaten Runner.</p>
+                <div class="record-list" id="run-list"></div>
+              </section>
+            </div>
+
+          </section>
+
+          <aside class="panel status-panel" id="system-status" aria-labelledby="status-title">
+            <div class="panel-header">
+              <div>
+                <span class="section-kicker">Sicherheitsgrenzen</span>
+                <h2 id="status-title">Systemstatus</h2>
+              </div>
+              <span class="status-monogram" aria-hidden="true">GA</span>
+            </div>
+            <ul class="status-list">
+              <li>
+                <span class="status-check" aria-hidden="true">✓</span>
+                <div><strong>Getrennter Runner</strong><small>Der Webserver startet keine Recon-Prozesse</small></div>
+              </li>
+              <li>
+                <span class="status-check" aria-hidden="true">✓</span>
+                <div><strong>Scope-Isolation</strong><small>Serverseitig autorisiert</small></div>
+              </li>
+              <li>
+                <span class="status-check" aria-hidden="true">✓</span>
+                <div><strong>Lokale Identität</strong><small>Kurzlebiges Access-JWT</small></div>
+              </li>
+            </ul>
+            <div class="endpoint-note">
+              <span>API-Basis</span><code>/api/v1</code>
+            </div>
+          </aside>
+        </div>
+
+        <footer class="dashboard-footer">
+          <span>GreyArtifact / local recon archive</span>
+          <span>Manueller Import · nachvollziehbare Evidenz</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

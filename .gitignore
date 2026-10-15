@@ -31,3 +31,9 @@ node_modules/
 
 # Runtime output
 *.log
+
+
+recon_pipeline/
+
+# Personal founding documents, never published
+docs/gruendung/

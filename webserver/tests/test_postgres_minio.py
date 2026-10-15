@@ -39,9 +39,20 @@ class PostgresMinioIntegrationTestCase(unittest.TestCase):
                 cursor.execute(
                     "SELECT to_regclass('recon.engagements'), "
                     "to_regclass('recon.recon_runs'), "
-                    "to_regclass('recon.recon_run_steps')"
+                    "to_regclass('recon.recon_run_steps'), "
+                    "to_regclass('recon.findings'), "
+                    "to_regclass('recon.finding_status_audit'), "
+                    "to_regclass('recon.finding_notes'), "
+                    "to_regclass('recon.import_batches'), "
+                    "to_regclass('recon.ml_predictions'), "
+                    "to_regclass('recon.ml_prediction_reviews')"
                 )
                 self.assertTrue(all(cursor.fetchone()))
+                cursor.execute(
+                    "SELECT EXISTS (SELECT 1 FROM recon.property_types "
+                    "WHERE code = 'source_value')"
+                )
+                self.assertTrue(cursor.fetchone()[0])
                 cursor.execute(
                     """
                     SELECT r.code
@@ -49,6 +60,17 @@ class PostgresMinioIntegrationTestCase(unittest.TestCase):
                     JOIN recon.role_permissions AS rp USING (role_id)
                     JOIN recon.permissions AS p USING (permission_id)
                     WHERE p.code = 'recon.execute'
+                    ORDER BY r.code
+                    """
+                )
+                self.assertEqual(cursor.fetchall(), [("owner",)])
+                cursor.execute(
+                    """
+                    SELECT r.code
+                    FROM recon.roles AS r
+                    JOIN recon.role_permissions AS rp USING (role_id)
+                    JOIN recon.permissions AS p USING (permission_id)
+                    WHERE p.code = 'sensitive.read'
                     ORDER BY r.code
                     """
                 )
@@ -64,7 +86,7 @@ class PostgresMinioIntegrationTestCase(unittest.TestCase):
         self.assertEqual(first.storage_key, second.storage_key)
         self.assertEqual(b"".join(storage.iter_bytes(first.storage_key)), payload)
 
-    def test_upgrade_from_004_to_005(self):
+    def test_upgrade_from_004_through_012(self):
         database_name = f"ga_upgrade_{uuid4().hex}"
         admin = dict(self.db_connection)
         admin["dbname"] = "postgres"
@@ -92,6 +114,78 @@ class PostgresMinioIntegrationTestCase(unittest.TestCase):
                 self.assertIsNotNone(
                     connection.execute(
                         "SELECT to_regclass('recon.engagements')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("006_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertTrue(
+                    connection.execute(
+                        "SELECT EXISTS (SELECT 1 FROM recon.property_types "
+                        "WHERE code = 'source_value')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("007_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.findings')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("008_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.finding_status_audit')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("009_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.finding_notes')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("010_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT column_default FROM information_schema.columns "
+                        "WHERE table_schema = 'recon' AND table_name = 'principals' "
+                        "AND column_name = 'credentials_version'"
+                    ).fetchone()[0],
+                    "0",
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("011_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.ml_predictions')"
+                    ).fetchone()[0]
+                )
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.import_batches')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("012_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.ml_prediction_reviews')"
                     ).fetchone()[0]
                 )
         finally:

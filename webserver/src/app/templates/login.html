@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Anmeldung · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("login") }}
+    <main class="dashboard">
+      {{ topbar("Anmeldung") }}
+      <div class="dashboard-content registration-page">
+        <section class="hero registration-hero" aria-labelledby="login-page-title">
+          <div>
+            <span class="section-kicker">Geschützter Zugang</span>
+            <h1 id="login-page-title">Willkommen zurück.</h1>
+            <p>Melde dich mit deinem freigeschalteten lokalen Konto an.</p>
+          </div>
+        </section>
+
+        <section class="panel registration-card" aria-labelledby="standalone-login-title">
+          <div class="auth-copy">
+            <span class="panel-number">01</span>
+            <div>
+              <span class="section-kicker">Lokale Identität</span>
+              <h2 id="standalone-login-title">GreyArtifact öffnen</h2>
+              <p>Nach erfolgreicher Anmeldung gelangst du direkt zum Dashboard.</p>
+            </div>
+          </div>
+          <form class="login-form" id="standalone-login-form" novalidate>
+            <label for="standalone-username">Benutzername</label>
+            <input id="standalone-username" name="username" type="text" autocomplete="username" autofocus required>
+            <label for="standalone-password">Passwort</label>
+            <input id="standalone-password" name="password" type="password" autocomplete="current-password" required>
+            <button class="button button-primary" id="standalone-login-button" type="submit">
+              <span>Anmelden</span><span aria-hidden="true">→</span>
+            </button>
+            <p class="form-message" id="standalone-login-message" role="status" aria-live="polite"></p>
+          </form>
+          <a class="auth-mode-toggle registration-back" href="{{ url_for('main.register') }}">Noch kein Konto? Registrierung anfragen</a>
+        </section>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/login.js') }}"></script>
+{% endblock %}

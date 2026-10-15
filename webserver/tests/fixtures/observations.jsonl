@@ -1,0 +1,2 @@
+{"asset":{"type":"domain","value":"api.example.test"},"relationships":[{"type":"resolves_to","target":{"type":"ipv4","value":"93.184.216.34"}},{"type":"hosts","target":{"type":"url","value":"https://api.example.test/"}}]}
+{"asset":{"type":"url","value":"https://api.example.test/"},"properties":{"http_status":200,"server":"nginx","tls_subject_cn":"api.example.test","title":"Example"}}

@@ -19,6 +19,7 @@ from app.models import (
     ScopeMembership,
 )
 from app.services.authorization import principal_has_scope_permission
+from app.services.login_throttle import LoginThrottle
 
 
 class ApiTestCase(unittest.TestCase):
@@ -181,10 +182,46 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn(b'id="theme-toggle"', response.data)
         self.assertIn(b'id="registration-form"', response.data)
         self.assertIn(b'href="/admin"', response.data)
-        self.assertIn(b'id="project-workspace"', response.data)
+        self.assertIn(b'id="account-menu-toggle"', response.data)
+        self.assertIn(b'id="account-login-link" href="/login"', response.data)
+        self.assertIn(b'id="account-profile-link"', response.data)
+        self.assertIn(b'class="nav-link is-hidden"', response.data)
+        self.assertIn(b'id="admin-nav-link"', response.data)
+        self.assertIn(b'id="workspace-panel"', response.data)
+        self.assertIn(b'id="project-create-form"', response.data)
+        self.assertNotIn(b'id="project-workspace"', response.data)
+        self.assertNotIn(b'id="import-form"', response.data)
+
+    def test_project_page_renders_dedicated_workspace(self):
+        project_id = uuid4()
+        response = self.client.get(f"/projects/{project_id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'id="project-page"', response.data)
+        self.assertIn(f'data-project-id="{project_id}"'.encode(), response.data)
+        self.assertIn(b'data-project-view="evidence"', response.data)
+        self.assertIn(b'data-project-view="findings"', response.data)
+        self.assertIn(b'id="finding-filter-form"', response.data)
         self.assertIn(b'id="import-form"', response.data)
         self.assertIn(b'id="engagement-form"', response.data)
         self.assertIn(b'id="run-list"', response.data)
+        self.assertIn(b"js/project.js", response.data)
+
+    def test_profile_page_renders_account_settings(self):
+        response = self.client.get("/profile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'id="profile-form"', response.data)
+        self.assertIn(b'id="password-form"', response.data)
+        self.assertIn(b"js/profile.js", response.data)
+
+    def test_login_page_renders_standalone_form(self):
+        response = self.client.get("/login")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'id="standalone-login-form"', response.data)
+        self.assertIn(b'id="standalone-login-button"', response.data)
+        self.assertIn(b"js/login.js", response.data)
 
     def test_admin_page_renders_dedicated_management_workspace(self):
         response = self.client.get("/admin")
@@ -192,6 +229,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Administration.", response.data)
         self.assertIn(b'id="admin-login-form"', response.data)
+        self.assertIn(b'id="admin-denied-panel"', response.data)
         self.assertIn(b'id="registration-list"', response.data)
         self.assertIn(b'id="member-form"', response.data)
         self.assertIn(b'id="audit-list"', response.data)
@@ -218,6 +256,205 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(
             wrong_password_response.get_json()["error"]["code"],
             "invalid_credentials",
+        )
+
+    def test_profile_and_password_can_be_updated_by_current_user(self):
+        headers = self._headers(self._login())
+        updated = self.client.patch(
+            "/api/v1/auth/me",
+            headers=headers,
+            json={"display_name": "Updated Owner"},
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(
+            updated.get_json()["principal"]["display_name"],
+            "Updated Owner",
+        )
+
+        wrong_current = self.client.put(
+            "/api/v1/auth/password",
+            headers=headers,
+            json={
+                "current_password": "definitely-not-the-current-password",
+                "new_password": secrets.token_urlsafe(24),
+            },
+        )
+        self.assertEqual(wrong_current.status_code, 400)
+        self.assertEqual(
+            wrong_current.get_json()["error"]["code"],
+            "invalid_current_password",
+        )
+
+        unchanged = self.client.put(
+            "/api/v1/auth/password",
+            headers=headers,
+            json={
+                "current_password": self.password,
+                "new_password": self.password,
+            },
+        )
+        self.assertEqual(unchanged.status_code, 409)
+
+        new_password = secrets.token_urlsafe(24)
+        changed = self.client.put(
+            "/api/v1/auth/password",
+            headers=headers,
+            json={
+                "current_password": self.password,
+                "new_password": new_password,
+            },
+        )
+        self.assertEqual(changed.status_code, 200)
+        self.assertEqual(changed.get_json()["status"], "password_changed")
+
+        # The token used for the change and any other earlier token are revoked;
+        # the token returned by the change keeps the current session alive.
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=headers).status_code, 401
+        )
+        fresh_headers = self._headers(changed.get_json()["access_token"])
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=fresh_headers).status_code, 200
+        )
+
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login",
+                json={"username": self.username, "password": self.password},
+            ).status_code,
+            401,
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login",
+                json={"username": self.username, "password": new_password},
+            ).status_code,
+            200,
+        )
+
+    def _login_attempt(self, username, password, address=None):
+        headers = {"X-Forwarded-For": address} if address else {}
+        return self.client.post(
+            "/api/v1/auth/login",
+            json={"username": username, "password": password},
+            headers=headers,
+        )
+
+    def test_repeated_failed_logins_are_throttled_per_username(self):
+        wrong = secrets.token_urlsafe(24)
+        for _ in range(5):
+            self.assertEqual(self._login_attempt(self.username, wrong).status_code, 401)
+
+        blocked = self._login_attempt(self.username, self.password)
+        self.assertEqual(blocked.status_code, 429)
+        self.assertEqual(blocked.get_json()["error"]["code"], "too_many_attempts")
+        self.assertGreater(int(blocked.headers["Retry-After"]), 0)
+        self.assertNotIn(self.username, blocked.get_data(as_text=True))
+        self.assertEqual(
+            self._login_attempt(self.username.upper(), self.password).status_code, 429
+        )
+        self.assertEqual(
+            self._login_attempt("someone-else", wrong).status_code, 401
+        )
+
+    def test_successful_login_resets_username_failures(self):
+        wrong = secrets.token_urlsafe(24)
+        for _ in range(4):
+            self._login_attempt(self.username, wrong)
+        self.assertEqual(self._login_attempt(self.username, self.password).status_code, 200)
+        for _ in range(4):
+            self.assertEqual(self._login_attempt(self.username, wrong).status_code, 401)
+        self.assertEqual(self._login_attempt(self.username, self.password).status_code, 200)
+
+    def _throttled_client(self, trusted_proxy_count):
+        app = create_app(
+            {
+                "TESTING": True,
+                "JWT_SECRET_KEY": self.jwt_secret,
+                "SQLALCHEMY_DATABASE_URI": "sqlite://",
+                "SQLALCHEMY_ENGINE_OPTIONS": {
+                    "execution_options": {"schema_translate_map": {"recon": None}},
+                },
+                "TRUSTED_PROXY_COUNT": trusted_proxy_count,
+                "LOGIN_MAX_FAILURES_PER_USERNAME": 100,
+                "LOGIN_MAX_FAILURES_PER_ADDRESS": 2,
+            }
+        )
+        with app.app_context():
+            connection = db.engine.raw_connection()
+            connection.create_function("btrim", 1, lambda value: value.strip())
+            connection.close()
+            db.create_all()
+        self.addCleanup(self._dispose_app, app)
+        return app.test_client()
+
+    @staticmethod
+    def _dispose_app(app):
+        with app.app_context():
+            db.session.remove()
+            db.engine.dispose()
+
+    def _failed_login_statuses(self, client, addresses):
+        return [
+            client.post(
+                "/api/v1/auth/login",
+                json={"username": f"unknown-{index}", "password": "wrong"},
+                headers={"X-Forwarded-For": address},
+            ).status_code
+            for index, address in enumerate(addresses)
+        ]
+
+    def test_forwarded_address_is_only_trusted_behind_configured_proxy(self):
+        spoofed = ["203.0.113.1", "203.0.113.2", "203.0.113.3"]
+        # Without a trusted proxy the header is ignored, so all attempts share one address.
+        self.assertEqual(
+            self._failed_login_statuses(self._throttled_client(0), spoofed),
+            [401, 401, 429],
+        )
+        proxied = ["198.51.100.1", "198.51.100.1", "198.51.100.1", "198.51.100.2"]
+        self.assertEqual(
+            self._failed_login_statuses(self._throttled_client(1), proxied),
+            [401, 401, 429, 401],
+        )
+
+    def test_login_throttle_window_expires(self):
+        now = [1000.0]
+        throttle = LoginThrottle(
+            window_seconds=60,
+            max_failures_per_username=2,
+            max_failures_per_address=10,
+            clock=lambda: now[0],
+        )
+        throttle.record_failure("alice", "192.0.2.1")
+        throttle.record_failure("Alice", "192.0.2.1")
+        self.assertEqual(throttle.retry_after("ALICE", "192.0.2.1"), 60)
+        now[0] += 30
+        self.assertEqual(throttle.retry_after("alice", None), 30)
+        now[0] += 30
+        self.assertIsNone(throttle.retry_after("alice", "192.0.2.1"))
+
+    def test_pages_and_api_send_strict_security_headers(self):
+        for path in ("/", "/login", "/api/v1/auth/me", "/static/js/theme-init.js"):
+            response = self.client.get(path)
+            policy = response.headers["Content-Security-Policy"]
+            self.assertIn("default-src 'self'", policy, path)
+            self.assertIn("frame-ancestors 'none'", policy, path)
+            self.assertNotIn("unsafe-inline", policy, path)
+            self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+            self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+            self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
+        page = self.client.get("/login").get_data(as_text=True)
+        self.assertNotIn("<script>", page)
+        self.assertIn("js/theme-init.js", page)
+
+    def test_api_docs_policy_only_adds_swagger_cdn(self):
+        response = self.client.get("/api/docs")
+        policy = response.headers["Content-Security-Policy"]
+        self.assertIn("script-src 'self' https://cdn.jsdelivr.net", policy)
+        self.assertNotIn("unsafe-inline", policy)
+        self.assertNotIn("<script>", response.get_data(as_text=True))
+        self.assertNotIn(
+            "cdn.jsdelivr.net", self.client.get("/").headers["Content-Security-Policy"]
         )
 
     def test_protected_route_rejects_missing_and_invalid_jwt(self):

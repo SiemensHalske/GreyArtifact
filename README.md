@@ -20,6 +20,8 @@ its current authorization explicitly permits the intended automated activity.
 - `compose.yaml` defines the isolated GreyArtifact development environment.
 - `docker/docker-compose.yaml` is the deliberately separate legacy Faraday
   environment.
+- `docker/caddy/compose.yaml` is the optional HTTPS reverse proxy for LAN
+  access.
 
 ## Local setup
 
@@ -57,3 +59,10 @@ PostgreSQL/MinIO integration coverage. Browser acceptance, an explicitly
 authorized real-runner smoke test, and market validation remain open. See the
 [acceptance audit](docs/validation/acceptance-audit-2026-10-11.md) for the
 verified status and next gates.
+
+## License
+
+GreyArtifact is source-visible proprietary software, not open-source software.
+Source review and narrowly limited non-production evaluation are permitted;
+production use, redistribution, and integration require a separate written
+license. See the [GreyArtifact Source-Visible License 1.0](LICENSE.md).

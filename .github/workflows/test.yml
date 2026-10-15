@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # The npm scripts call .venv/bin/python, matching the local layout.
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r webserver/requirements.txt
+
+      - name: Unit, API and fake-runner tests
+        run: PYTHONPATH=webserver/src .venv/bin/python -m unittest discover -s webserver/tests
+
+      - name: Shell script syntax
+        run: for script in webserver/scripts/*.sh; do bash -n "$script"; done
+
+      - name: OpenAPI contract is current and valid
+        run: |
+          npm ci
+          npm run api:export
+          git diff --exit-code docs/openapi.json
+          npm run api:lint

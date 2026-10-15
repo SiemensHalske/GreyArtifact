@@ -5,8 +5,10 @@ from typing import Any
 from dotenv import load_dotenv
 from flask import Flask
 from sqlalchemy.engine import URL
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.extensions import api as smorest_api, db, jwt
+from app.services.login_throttle import LoginThrottle
 
 
 def _database_url_from_environment() -> URL:
@@ -49,6 +51,24 @@ def _database_url_from_environment() -> URL:
     )
 
 
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "img-src 'self' data:; "
+    "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+)
+
+
+def _register_security_headers(app: Flask) -> None:
+    @app.after_request
+    def set_security_headers(response):
+        # Routes with special needs (Swagger UI) set their own policy first.
+        response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        return response
+
+
 def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     project_root = Path(__file__).resolve().parents[3]
     load_dotenv(project_root / ".env")
@@ -82,6 +102,11 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             )
         except ValueError as exc:
             raise RuntimeError("MAX_ARTIFACT_BYTES must be a valid integer.") from exc
+    if os.environ.get("TRUSTED_PROXY_COUNT"):
+        try:
+            app.config["TRUSTED_PROXY_COUNT"] = int(os.environ["TRUSTED_PROXY_COUNT"])
+        except ValueError as exc:
+            raise RuntimeError("TRUSTED_PROXY_COUNT must be a valid integer.") from exc
     if test_config is not None:
         app.config.update(test_config)
 
@@ -94,6 +119,17 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     ):
         raise RuntimeError(
             "Set a private JWT_SECRET_KEY in the root .env file.")
+
+    # Only trust forwarding headers when a known reverse proxy sets them;
+    # otherwise clients could spoof their address for the login throttle.
+    if app.config["TRUSTED_PROXY_COUNT"] > 0:
+        proxies = app.config["TRUSTED_PROXY_COUNT"]
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies)
+    app.extensions["login_throttle"] = LoginThrottle(
+        window_seconds=app.config["LOGIN_THROTTLE_WINDOW_SECONDS"],
+        max_failures_per_username=app.config["LOGIN_MAX_FAILURES_PER_USERNAME"],
+        max_failures_per_address=app.config["LOGIN_MAX_FAILURES_PER_ADDRESS"],
+    )
 
     db.init_app(app)
     jwt.init_app(app)
@@ -124,6 +160,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     configure_jwt()
     register_error_handlers(app)
+    _register_security_headers(app)
     app.register_blueprint(main_bp)
     smorest_api.register_blueprint(auth_bp)
     smorest_api.register_blueprint(scopes_bp)

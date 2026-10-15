@@ -1,0 +1,41 @@
+id,category,source,source_type,signal,strength,url
+S01,direct_competitor,reNgine,official_repository,"Recon dashboard, configurable engines, data correlation and organization",high,https://github.com/yogeshojha/rengine
+S02,direct_competitor,Reconmap,official_repository,"Engagement management, command automation, parsing and reporting",high,https://github.com/reconmap/reconmap
+S03,direct_competitor,Reconner,official_repository,"Self-hosted recon with reproducibility evidence and portable research bundles",high,https://github.com/rootdr-backup/Reconner
+S04,recon_engine,BBOT,official_repository,"Popular modular recon engine with structured outputs and broad integrations",high,https://github.com/blacklanternsecurity/bbot
+S05,scope_governance,BBOT scanning documentation,official_documentation,"Targets, seeds and exclusions constrain active modules",high,https://github.com/blacklanternsecurity/bbot/blob/stable/docs/scanning/index.md
+S06,recon_engine,Osmedeus,official_repository,"Declarative distributed security orchestration with auditable workflows",high,https://github.com/j3ssie/osmedeus
+S07,workaround,Osmedeus community workflow,official_repository,"Existing Subfinder/DNSx/HTTPx-style workflow implementation",high,https://github.com/osmedeus/osmedeus-workflow
+S08,adjacent_competitor,Faraday documentation,official_documentation,"Centralizes and normalizes results from many security tools",high,https://docs.faradaysec.com/
+S09,adjacent_competitor,Faraday repository,official_repository,"Large open-source multiuser vulnerability management project",high,https://github.com/infobyte/faraday
+S10,adjacent_competitor,DefectDojo repository,official_repository,"Open-source finding import, deduplication and vulnerability management",high,https://github.com/DefectDojo/django-DefectDojo
+S11,pricing,DefectDojo pricing,official_pricing,"Commercial entry at USD 100 monthly plus per-finding usage",high,https://defectdojo.com/pricing
+S12,product_model,DefectDojo feature comparison,official_documentation,"Community and Pro split around automation, connectors, advanced RBAC and support",high,https://docs.defectdojo.com/get_started/about/defectdojo_versions/
+S13,adjacent_competitor,Dradis,official_product,"Self-hosted pentest collaboration and reporting",high,https://dradis.com/
+S14,pricing,Dradis pricing,official_pricing,"Paid self-hosted plans with minimum seat count and enterprise controls",high,https://dradis.com/pricing.html
+S15,adjacent_competitor,SysReptor repository,official_repository,"Self-hosted or cloud pentest reporting with visible community adoption",high,https://github.com/Syslifters/sysreptor
+S16,pricing,SysReptor pricing,official_pricing,"Community and USD 65 per-user professional offerings",high,https://offsec.sysreptor.com/pricing
+S17,product_model,SysReptor FAQ,official_documentation,"Free small-team edition; paid roles and professional operation",high,https://docs.sysreptor.com/faq/application
+S18,adjacent_competitor,Ghostwriter,official_repository,"Red-team projects, assets, evidence and collaborative reporting",high,https://github.com/GhostManager/Ghostwriter
+S19,adjacent_competitor,PwnDoc-ng,official_repository,"Multiuser pentest report generation and shared vulnerability data",high,https://github.com/pwndoc-ng/pwndoc-ng
+S20,pricing,AttackForge pricing,official_pricing,"Transparent solo and small-team pricing for offensive-security management",high,https://attackforge.app/pricing
+S21,adjacent_competitor,AttackForge workflow,official_product,"Project, scope, team, import, evidence and report lifecycle",high,https://www.attackforge.com/learn-more
+S22,adjacent_competitor,PlexTrac,official_product,"Commercial pentest reporting and exposure-management platform",high,https://plextrac.com/
+S23,easm,Detectify documentation,official_documentation,"Attack-surface discovery across domains, IPs, ports and technologies",high,https://docs.detectify.com/
+S24,pricing,Detectify pricing,official_pricing,"Paid attack-surface and DAST packages with asset-based additions",high,https://detectify.com/pricing
+S25,pricing,ProjectDiscovery pricing,official_pricing,"Paid security workflows, scoped execution logs and team controls",high,https://projectdiscovery.io/pricing
+S26,evidence_competitor,Pentr product,official_product,"Autonomous pentesting with signed evidence lockers",high,https://pentr.sh/
+S27,evidence_competitor,Pentr documentation,official_documentation,"Ownership checks, isolated runs, hashed artifacts and exportable evidence",high,https://pentr.sh/docs/
+S28,evidence_competitor,Pentr locker verification,official_documentation,"Offline verification of sealed commands, HTTP exchanges and screenshots",high,https://pentr.sh/docs/locker/verify
+S29,standard,OWASP APTS introduction,official_standard,"Scope enforcement, auditability, reproducibility and reporting requirements",high,https://github.com/OWASP/APTS/blob/main/standard/Introduction.md
+S30,standard,OWASP APTS evidence manifest,official_standard,"Raw artifacts, hashes, provenance and chain-of-custody guidance",high,https://github.com/OWASP/APTS/blob/main/standard/appendix/Evidence_Package_Manifest.md
+S31,pain_signal,Missing recon normalization,community_discussion,"User identifies collecting and retrieving non-normalized recon data as tedious",medium,https://www.reddit.com/r/bugbounty/comments/1fc0naw
+S32,pain_signal,Pentest organization,community_discussion,"Workarounds include Obsidian, spreadsheets, text files and timestamped tool outputs",medium,https://www.reddit.com/r/Pentesting/comments/1pche24/pentesting_organization/
+S33,pain_signal,Attack-surface organization,community_discussion,"Users report lost context, duplicated effort and folder-based organization",medium,https://www.reddit.com/r/bugbounty/comments/1uuxihi/organizing_your_attack_surface_how_do_you_do_it/
+S34,pain_signal,Recon notes in Obsidian,community_discussion,"Tags, folders and custom databases used to prevent recon data becoming a mess",medium,https://www.reddit.com/r/bugbounty/comments/1uhptle/how_do_you_use_obsidian_for_bug_bounty/
+S35,pain_signal,Structured recon reporting,community_discussion,"Notes and spreadsheets described as poor fit for consolidating findings",low,https://www.reddit.com/r/bugbounty/comments/1s41ffx/struggling_to_turn_recon_findings_into_structured/
+S36,self_hosting,SaaS pentest data discussion,community_discussion,"Sensitive client data creates objections to hosted pentest applications",medium,https://www.reddit.com/r/Pentesting/comments/1u4lm9k/how_do_you_feel_about_saas_pentest_apps_for/
+S37,self_hosting,Post-assessment reporting tools,community_discussion,"Small shop cites cloud trust and self-hosting cost concerns",medium,https://www.reddit.com/r/Pentesting/comments/dg0lje
+S38,self_hosting,Self-hosted pentest workspace,community_discussion,"Team describes keeping client methodology and findings on-premises",medium,https://www.reddit.com/r/Pentesting/comments/1wasc7f/we_built_a_fully_selfhosted_ai_pentesting/
+S39,reliability,reNgine blank report issue,issue_tracker,"Successful download can contain an empty report",medium,https://github.com/yogeshojha/rengine/issues/1536
+S40,reliability,reNgine parsing issue,issue_tracker,"Tool output and parser changes can yield zero visible findings",medium,https://github.com/yogeshojha/rengine/issues/1480

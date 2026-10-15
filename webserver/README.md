@@ -155,6 +155,13 @@ Start the development server from the repository root with:
 Keep `FLASK_RUN_HOST=127.0.0.1` and `FLASK_DEBUG=0` whenever the host is
 reachable from a network: the Werkzeug debugger allows code execution.
 
+On a host reachable from a network, run the app under gunicorn behind the
+reverse proxy instead. `webserver/scripts/host_serve.sh` starts it on
+`127.0.0.1:${FLASK_RUN_PORT:-5000}` with one worker and eight threads: the
+login throttle counts failures in process memory, so several workers would each
+keep their own count. It is meant for cron (`@reboot` plus an every-minute
+guard) and appends to `app.log`.
+
 ### Artifact storage for the host development server
 
 When the web process runs directly on the host, start only MinIO from the
@@ -310,6 +317,19 @@ RESTORE_DB_NAME=recon_restore webserver/scripts/restore.sh <backup-directory>
 
 Backups contain unredacted raw artifacts. Store them and the decryption key
 separately from the server.
+
+### System status
+
+`/status` shows live checks from `GET /api/v1/system/status` to principals with
+`membership.manage` in any scope; everyone else gets 404. It reports app uptime,
+database and object-storage latency, the newest backup in `STATUS_BACKUP_DIR`
+(warning after 26 h; error after 50 h or without `SHA256SUMS`), the TLS
+certificate of `STATUS_TLS_HOSTNAME` fetched from `STATUS_TLS_ADDRESS` (default
+`127.0.0.1:443`; warning below 14 days, error below 3), the latest result per
+address family in the dynv6 log `STATUS_DDNS_LOG` (warning after 7 h or on a
+failed update), and disk usage of the comma-separated `STATUS_DISK_PATHS`
+(default `/`; warning at 85 %, error at 95 %). Unset settings are shown as not
+configured.
 
 ## Imports, evidence, and recon
 

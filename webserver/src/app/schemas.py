@@ -571,3 +571,18 @@ class ReconRunEnvelopeSchema(Schema):
 class ReconRunsEnvelopeSchema(Schema):
     runs = fields.List(fields.Nested(ReconRunSchema), required=True)
     next_cursor = fields.UUID(allow_none=True)
+
+
+class SystemCheckSchema(Schema):
+    key = fields.String(required=True)
+    state = fields.String(
+        required=True,
+        validate=validate.OneOf(["ok", "warning", "error", "unconfigured"]),
+    )
+    details = fields.Dict(required=True)
+
+
+class SystemStatusEnvelopeSchema(Schema):
+    generated_at = fields.DateTime(required=True)
+    overall = fields.String(required=True)
+    checks = fields.List(fields.Nested(SystemCheckSchema), required=True)

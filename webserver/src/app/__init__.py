@@ -94,6 +94,11 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         RUNNER_HTTPX_PATH=os.environ.get(
             "RUNNER_HTTPX_PATH", "/opt/greyartifact/bin/httpx"
         ),
+        STATUS_BACKUP_DIR=os.environ.get("STATUS_BACKUP_DIR") or None,
+        STATUS_DDNS_LOG=os.environ.get("STATUS_DDNS_LOG") or None,
+        STATUS_TLS_HOSTNAME=os.environ.get("STATUS_TLS_HOSTNAME") or None,
+        STATUS_TLS_ADDRESS=os.environ.get("STATUS_TLS_ADDRESS") or "127.0.0.1:443",
+        STATUS_DISK_PATHS=os.environ.get("STATUS_DISK_PATHS") or "/",
     )
     if os.environ.get("MAX_ARTIFACT_BYTES"):
         try:
@@ -157,6 +162,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     from app.blueprints.projects import bp as projects_bp
     from app.blueprints.recon import bp as recon_bp
     from app.blueprints.scopes import bp as scopes_bp
+    from app.blueprints.system import bp as system_bp
 
     configure_jwt()
     register_error_handlers(app)
@@ -166,4 +172,5 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     smorest_api.register_blueprint(scopes_bp)
     smorest_api.register_blueprint(projects_bp)
     smorest_api.register_blueprint(recon_bp)
+    smorest_api.register_blueprint(system_bp)
     return app

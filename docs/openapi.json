@@ -1809,6 +1809,57 @@
         ],
         "type": "object"
       },
+      "SystemCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "details": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "warning",
+              "error",
+              "unconfigured"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "details",
+          "key",
+          "state"
+        ],
+        "type": "object"
+      },
+      "SystemStatusEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/SystemCheck"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "overall": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checks",
+          "generated_at",
+          "overall"
+        ],
+        "type": "object"
+      },
       "Token": {
         "additionalProperties": false,
         "properties": {
@@ -4216,6 +4267,45 @@
           }
         }
       ]
+    },
+    "/api/v1/system/status": {
+      "get": {
+        "description": "Restricted to principals with membership.manage in any scope; everyone\nelse gets 404 so the endpoint does not reveal host details.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatusEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not an owner or admin"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Live health checks: app, database, object storage, backup, TLS\ncertificate, dynamic DNS and disk usage.",
+        "tags": [
+          "system"
+        ]
+      }
     }
   },
   "security": [],
@@ -4240,6 +4330,10 @@
     {
       "description": "Authorized engagements and controlled domain_basic_v1 runs.",
       "name": "recon"
+    },
+    {
+      "description": "Operational health of the host, for owners and admins.",
+      "name": "system"
     }
   ]
 }

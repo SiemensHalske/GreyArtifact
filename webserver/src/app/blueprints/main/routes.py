@@ -23,6 +23,11 @@ def profile():
     return render_template("profile.html")
 
 
+@bp.get("/status")
+def status():
+    return render_template("status.html")
+
+
 @bp.get("/login")
 def login():
     return render_template("login.html")

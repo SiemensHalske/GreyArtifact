@@ -69,7 +69,7 @@ Legende: ✅ erledigt · 🟡 teilweise · ⏳ wartet auf den Entwickler · ⬜ 
   - Strikte CSP ohne Inline-Code, dazu `nosniff`, `X-Frame-Options: DENY` und `Referrer-Policy: no-referrer`.
   - Theme- und Swagger-Init sind in statische Dateien ausgelagert. Nur `/api/docs` darf zusätzlich jsDelivr laden.
   - Im Browser geprüft: Login, Registrierung, Theme-Wechsel und Swagger, ohne CSP-Fehler.
-  - ⬜ HSTS in Caddy, sobald das CA-Zertifikat auf den Clients importiert ist.
+  - ✅ HSTS: jetzt in nginx (Block 5).
 - ✅ **Backup und Restore:**
   - `webserver/scripts/backup.sh` und `restore.sh`, verschlüsselt per GnuPG, mit SHA-256-Prüfung jedes Objekts.
   - Sicherung außerhalb des Repos; ein Restore über die Live-Datenbank wird abgelehnt.
@@ -99,6 +99,22 @@ GreyArtifact mit echten Fennec-Daten im eigenen Alltag genutzt wird.
 
 - ⬜ Kontakte parallel aufbauen: Kanäle aus der Zielgruppe ableiten, kurze Gesprächsanfrage (kein Verkauf), [contact-tracker.csv](../docs/validation/contact-tracker.csv) pflegen. Die Nachrichten schreibt und verschickt der Entwickler.
 - ⬜ Design-Partner-Demos; in dieser Woche nur Sicherheits-, Installations- und Bedienfehler beheben.
+
+## Block 5 – Öffentlicher Betrieb (seit 15. Okt)
+
+GreyArtifact ist unter `https://greyartifact.dynv6.net` aus dem Internet erreichbar.
+
+- ✅ **DynDNS:** `~/bin/dynv6-update.sh` (außerhalb des Repos), alle 6 h per cron, `ipv4=auto`/`ipv6=auto` über HTTPS; Token nur in `~/.config/dynv6/token`.
+- ✅ **Reverse Proxy:** nginx statt Caddy, Zertifikat von Let's Encrypt per certbot-Webroot (gültig bis 13.01.2027, Verlängerung per certbot-Cron mit nginx-Reload). Fremde Hostnamen und nackte IPs bekommen keine Antwort. HSTS vorerst 1 Tag. Caddy gestoppt (`restart=no`).
+- ✅ **Router:** 80/443 für IPv4 und IPv6 freigegeben, SSH bleibt im LAN.
+- ✅ **CrowdSec** mit Firewall-Bouncer (vom Entwickler eingerichtet). ⏳ Prüfen, dass `crowdsecurity/nginx` die nginx-Logs auswertet.
+- ✅ **gunicorn** statt Flask-Entwicklungsserver: 1 Worker × 8 Threads (die Login-Drosselung zählt im Prozess), Timeout 300 s, kein Control-Socket. Start weiterhin über `host_serve.sh` und cron.
+- ✅ **Systemstatus-Seite** `/status`, nur für Owner/Admins: App, Datenbank, MinIO, Backup, Zertifikat, DynDNS, Plattenplatz.
+- ⏳ **Öffentliche Registrierung:** offen lassen oder für den Internetzugang abschalten.
+- ⏳ **GitHub-Token:** `.github_key.txt` aus dem Repo-Ordner löschen; den Token mit sehr breiten Rechten durch einen repo-gebundenen ersetzen.
+- ⏳ **Stabilität von mx:** am 15. Okt dreimal nicht erreichbar (zuletzt Neustart 18:14; das DynDNS-Update um 18:00 lief schon ins Timeout). `kern.log` auswerten.
+- ⬜ Reboot-Test mit gunicorn (Autostart über cron `@reboot`).
+- ⬜ HSTS auf ein Jahr, sobald der Betrieb stabil ist.
 
 ## Als Nächstes – Integration von `recon_pipeline` und `recon_ml`
 

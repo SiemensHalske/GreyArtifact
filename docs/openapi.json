@@ -92,6 +92,35 @@
         ],
         "type": "object"
       },
+      "BatchImportResult": {
+        "additionalProperties": false,
+        "properties": {
+          "error_message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "import_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "original_filename": {
+            "type": "string"
+          },
+          "parser_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "original_filename",
+          "status"
+        ],
+        "type": "object"
+      },
       "Engagement": {
         "additionalProperties": false,
         "properties": {
@@ -350,6 +379,246 @@
         ],
         "type": "object"
       },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "artifact_sha256": {
+            "type": "string"
+          },
+          "asset": {
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
+              {
+                "$ref": "#/components/schemas/Asset"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "evidence_locator": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "import_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_sensitive": {
+            "type": "boolean"
+          },
+          "matched_at": {
+            "type": "string"
+          },
+          "matcher_name": {
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "parser_name": {
+            "type": "string"
+          },
+          "parser_version": {
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "artifact_sha256",
+          "created_at",
+          "evidence_locator",
+          "external_id",
+          "finding_id",
+          "import_id",
+          "is_sensitive",
+          "matched_at",
+          "matcher_name",
+          "metadata",
+          "parser_name",
+          "parser_version",
+          "project_id",
+          "severity",
+          "source",
+          "status",
+          "title",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "FindingEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "finding": {
+            "$ref": "#/components/schemas/Finding"
+          }
+        },
+        "required": [
+          "finding"
+        ],
+        "type": "object"
+      },
+      "FindingHistoryEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/FindingHistoryEvent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "type": "object"
+      },
+      "FindingHistoryEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/Principal"
+          },
+          "body": {
+            "nullable": true,
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "status",
+              "note"
+            ],
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status_after": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status_before": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor",
+          "event_id",
+          "kind",
+          "occurred_at"
+        ],
+        "type": "object"
+      },
+      "FindingHistoryEventEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/FindingHistoryEvent"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "type": "object"
+      },
+      "FindingNoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "FindingStatusUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "new",
+              "confirmed",
+              "false_positive",
+              "remediated",
+              "accepted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "FindingsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "findings"
+        ],
+        "type": "object"
+      },
       "Import": {
         "additionalProperties": false,
         "properties": {
@@ -391,6 +660,9 @@
             "format": "uuid",
             "type": "string"
           },
+          "requires_sensitive_access": {
+            "type": "boolean"
+          },
           "sha256": {
             "type": "string"
           },
@@ -409,8 +681,98 @@
           "imported_at",
           "original_filename",
           "project_id",
+          "requires_sensitive_access",
           "sha256",
           "status"
+        ],
+        "type": "object"
+      },
+      "ImportBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "batch_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "engagement_reference": {
+            "nullable": true,
+            "type": "string"
+          },
+          "external_run_ref": {
+            "type": "string"
+          },
+          "manifest_version": {
+            "type": "string"
+          },
+          "ml_inference_run_ref": {
+            "type": "string"
+          },
+          "ml_model": {
+            "type": "string"
+          },
+          "ml_model_status": {
+            "type": "string"
+          },
+          "ml_model_version": {
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_id",
+          "created_at",
+          "external_run_ref",
+          "manifest_version",
+          "ml_inference_run_ref",
+          "ml_model",
+          "ml_model_status",
+          "ml_model_version",
+          "project_id",
+          "source"
+        ],
+        "type": "object"
+      },
+      "ImportBatchEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/ImportBatch"
+          },
+          "imports": {
+            "items": {
+              "$ref": "#/components/schemas/BatchImportResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "batch",
+          "imports"
+        ],
+        "type": "object"
+      },
+      "ImportBatchesEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "batches": {
+            "items": {
+              "$ref": "#/components/schemas/ImportBatch"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "batches"
         ],
         "type": "object"
       },
@@ -577,6 +939,260 @@
         ],
         "type": "object"
       },
+      "MlClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "claim": {
+            "type": "string"
+          },
+          "claim_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "engine_version": {
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "state": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "candidates",
+          "claim",
+          "claim_id",
+          "engine_version",
+          "evidence",
+          "state",
+          "version"
+        ],
+        "type": "object"
+      },
+      "MlClaimSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim",
+          "count",
+          "state"
+        ],
+        "type": "object"
+      },
+      "MlClaimsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/MlClaim"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/MlClaimSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "claims",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "MlPrediction": {
+        "additionalProperties": false,
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "batch_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "evidence_locator": {
+            "type": "string"
+          },
+          "explanation": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "is_sensitive": {
+            "type": "boolean"
+          },
+          "model_status": {
+            "type": "string"
+          },
+          "model_version": {
+            "type": "string"
+          },
+          "percentile": {
+            "type": "number"
+          },
+          "prediction_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
+              {
+                "$ref": "#/components/schemas/MlPredictionReview"
+              }
+            ]
+          }
+        },
+        "required": [
+          "asset",
+          "batch_id",
+          "created_at",
+          "evidence_locator",
+          "explanation",
+          "is_sensitive",
+          "model_status",
+          "model_version",
+          "percentile",
+          "prediction_id",
+          "rank"
+        ],
+        "type": "object"
+      },
+      "MlPredictionReview": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "prediction_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "review_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/Principal"
+          }
+        },
+        "required": [
+          "created_at",
+          "decision",
+          "prediction_id",
+          "review_id",
+          "reviewer"
+        ],
+        "type": "object"
+      },
+      "MlPredictionReviewCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "expected",
+              "data_artifact",
+              "review_worthy",
+              "confirmed_finding"
+            ],
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "MlPredictionReviewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/MlPredictionReview"
+          }
+        },
+        "required": [
+          "review"
+        ],
+        "type": "object"
+      },
+      "MlPredictionsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/MlPrediction"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "predictions"
+        ],
+        "type": "object"
+      },
       "Pagination": {
         "additionalProperties": false,
         "properties": {
@@ -628,6 +1244,47 @@
         },
         "type": "object"
       },
+      "PasswordChange": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "new_password": {
+            "maxLength": 4096,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "type": "object"
+      },
+      "PasswordChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "token_type": {
+            "default": "Bearer"
+          }
+        },
+        "required": [
+          "access_token",
+          "status"
+        ],
+        "type": "object"
+      },
       "Principal": {
         "additionalProperties": false,
         "properties": {
@@ -658,6 +1315,21 @@
         },
         "required": [
           "principal"
+        ],
+        "type": "object"
+      },
+      "ProfileUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
         ],
         "type": "object"
       },
@@ -1203,6 +1875,16 @@
             },
             "description": "Invalid credentials"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Too many failed login attempts"
+          },
           "default": {
             "$ref": "#/components/responses/DEFAULT_ERROR"
           }
@@ -1234,6 +1916,111 @@
               }
             },
             "description": "Authentication required"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordChanged"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Current password is invalid"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "New password matches current password"
           },
           "default": {
             "$ref": "#/components/responses/DEFAULT_ERROR"
@@ -1723,6 +2510,709 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/findings": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": null,
+              "format": "uuid",
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": null,
+              "maxLength": 255,
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "default": null,
+              "enum": [
+                "info",
+                "low",
+                "medium",
+                "high",
+                "critical",
+                "unknown",
+                null
+              ],
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": null,
+              "enum": [
+                "new",
+                "confirmed",
+                "false_positive",
+                "remediated",
+                "accepted",
+                null
+              ],
+              "nullable": true,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingsEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/projects/{project_id}/findings/{finding_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Finding not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "finding_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/projects/{project_id}/findings/{finding_id}/history": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingHistoryEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Finding not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "finding_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/projects/{project_id}/findings/{finding_id}/notes": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "finding_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingHistoryEventEnvelope"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Finding not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/findings/{finding_id}/status": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "finding_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ],
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Finding not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/import-batches": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchesEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": {
+                  "format": "binary",
+                  "type": "string"
+                },
+                "properties": {
+                  "manifest": {
+                    "description": "greyartifact-run-manifest/v1 JSON.",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "manifest"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchEnvelope"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Invalid manifest or files"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Project not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Run already imported"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Artifact too large"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/import-batches/{batch_id}/claims": {
+      "get": {
+        "description": "`summary` counts claims per claim and state; `claims` lists one asset's\nclaims when `asset_id` is given. Acquisition candidates and recommendations\nare never executed from GreyArtifact.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "asset_id",
+            "required": false,
+            "schema": {
+              "default": null,
+              "format": "uuid",
+              "nullable": true,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlClaimsEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Batch not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Stage-8 claim states of a run, for display only.",
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "batch_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/projects/{project_id}/import-batches/{batch_id}/predictions": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": null,
+              "format": "uuid",
+              "nullable": true,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlPredictionsEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Batch not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "batch_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/projects/{project_id}/import-batches/{batch_id}/review-feedback": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Latest analyst decision per reviewed prediction, as JSONL for recon_ml."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Batch not found"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "batch_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ]
+    },
     "/api/v1/projects/{project_id}/imports": {
       "get": {
         "parameters": [
@@ -1792,16 +3282,59 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "oneOf": [
+                  {
+                    "required": [
+                      "file",
+                      "tool"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "file"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "text"
+                        ]
+                      }
+                    ],
+                    "required": [
+                      "format"
+                    ]
+                  }
+                ],
                 "properties": {
                   "file": {
                     "format": "binary",
                     "type": "string"
                   },
+                  "format": {
+                    "enum": [
+                      "simple_list",
+                      "subfinder",
+                      "dnsx",
+                      "httpx",
+                      "nuclei",
+                      "greyartifact_observations"
+                    ],
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "UTF-8 asset list pasted without a source file.",
+                    "type": "string"
+                  },
                   "tool": {
+                    "deprecated": true,
+                    "description": "Legacy alias for format.",
                     "enum": [
                       "subfinder",
                       "dnsx",
-                      "httpx"
+                      "httpx",
+                      "nuclei"
                     ],
                     "type": "string"
                   },
@@ -1810,10 +3343,6 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "file",
-                  "tool"
-                ],
                 "type": "object"
               }
             }
@@ -1870,6 +3399,26 @@
         "responses": {
           "200": {
             "description": "The unchanged source artifact."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Sensitive artifact"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Import not found"
           },
           "default": {
             "$ref": "#/components/responses/DEFAULT_ERROR"
@@ -1947,6 +3496,76 @@
               }
             },
             "description": "Report parsing failed"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/ml-predictions/{prediction_id}/review": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "prediction_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MlPredictionReviewCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlPredictionReviewEnvelope"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Prediction not found"
           },
           "default": {
             "$ref": "#/components/responses/DEFAULT_ERROR"

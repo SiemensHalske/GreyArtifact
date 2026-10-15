@@ -61,6 +61,27 @@ class PrincipalEnvelopeSchema(Schema):
     principal = fields.Nested(PrincipalSchema, required=True)
 
 
+class ProfileUpdateSchema(Schema):
+    display_name = fields.String(
+        required=True,
+        allow_none=True,
+        validate=[validate.Length(min=1, max=255), nonblank],
+    )
+
+
+class PasswordChangeSchema(Schema):
+    current_password = fields.String(
+        required=True,
+        load_only=True,
+        validate=validate.Length(min=1, max=4096),
+    )
+    new_password = fields.String(
+        required=True,
+        load_only=True,
+        validate=[validate.Length(min=12, max=4096), nonblank],
+    )
+
+
 class ScopeSchema(Schema):
     scope_id = fields.UUID(required=True)
     name = fields.String(required=True)
@@ -173,6 +194,162 @@ class AssetListQuerySchema(CursorPaginationQuerySchema):
     )
 
 
+FINDING_STATUSES = ["new", "confirmed", "false_positive", "remediated", "accepted"]
+
+
+class FindingListQuerySchema(CursorPaginationQuerySchema):
+    q = fields.String(
+        load_default=None, allow_none=True, validate=validate.Length(max=255)
+    )
+    severity = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.OneOf(
+            ["info", "low", "medium", "high", "critical", "unknown"]
+        ),
+    )
+    status = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.OneOf(FINDING_STATUSES),
+    )
+
+
+class FindingStatusUpdateSchema(Schema):
+    status = fields.String(required=True, validate=validate.OneOf(FINDING_STATUSES))
+
+
+class FindingNoteCreateSchema(Schema):
+    body = fields.String(required=True, validate=validate.Length(min=1, max=4000))
+
+    @validates_schema
+    def require_text(self, data, **_kwargs):
+        if not data["body"].strip():
+            raise ValidationError("Note must not be blank.", "body")
+
+
+class FindingHistoryEventSchema(Schema):
+    kind = fields.String(required=True, validate=validate.OneOf(["status", "note"]))
+    event_id = fields.UUID(required=True)
+    actor = fields.Nested(PrincipalSchema, required=True)
+    occurred_at = fields.DateTime(required=True)
+    status_before = fields.String(allow_none=True)
+    status_after = fields.String(allow_none=True)
+    body = fields.String(allow_none=True)
+
+
+class FindingHistoryEventEnvelopeSchema(Schema):
+    event = fields.Nested(FindingHistoryEventSchema, required=True)
+
+
+class FindingHistoryEnvelopeSchema(Schema):
+    events = fields.List(fields.Nested(FindingHistoryEventSchema), required=True)
+
+
+class ImportBatchSchema(Schema):
+    batch_id = fields.UUID(required=True)
+    project_id = fields.UUID(required=True)
+    source = fields.String(required=True)
+    manifest_version = fields.String(required=True)
+    external_run_ref = fields.String(required=True)
+    engagement_reference = fields.String(allow_none=True)
+    ml_model = fields.String(required=True)
+    ml_model_version = fields.String(required=True)
+    ml_model_status = fields.String(required=True)
+    ml_inference_run_ref = fields.String(required=True)
+    created_at = fields.DateTime(required=True)
+
+
+class BatchImportResultSchema(Schema):
+    import_id = fields.UUID(required=True)
+    original_filename = fields.String(required=True)
+    parser_name = fields.String(allow_none=True)
+    status = fields.String(required=True)
+    error_message = fields.String(allow_none=True)
+
+
+class ImportBatchEnvelopeSchema(Schema):
+    batch = fields.Nested(ImportBatchSchema, required=True)
+    imports = fields.List(fields.Nested(BatchImportResultSchema), required=True)
+
+
+class ImportBatchesEnvelopeSchema(Schema):
+    batches = fields.List(fields.Nested(ImportBatchSchema), required=True)
+
+
+class MlPredictionSchema(Schema):
+    prediction_id = fields.UUID(required=True)
+    batch_id = fields.UUID(required=True)
+    asset = fields.Nested("AssetSchema", required=True)
+    model_version = fields.String(required=True)
+    model_status = fields.String(required=True)
+    percentile = fields.Float(required=True)
+    rank = fields.Integer(required=True)
+    explanation = fields.Dict(required=True)
+    evidence_locator = fields.String(required=True)
+    is_sensitive = fields.Boolean(required=True)
+    created_at = fields.DateTime(required=True)
+    review = fields.Nested("MlPredictionReviewSchema", allow_none=True)
+
+
+class MlPredictionsEnvelopeSchema(Schema):
+    predictions = fields.List(fields.Nested(MlPredictionSchema), required=True)
+    next_cursor = fields.UUID(allow_none=True)
+
+
+ML_REVIEW_DECISIONS = [
+    "expected",
+    "data_artifact",
+    "review_worthy",
+    "confirmed_finding",
+]
+
+
+class MlPredictionReviewCreateSchema(Schema):
+    decision = fields.String(required=True, validate=validate.OneOf(ML_REVIEW_DECISIONS))
+    note = fields.String(allow_none=True, validate=validate.Length(max=4000))
+
+
+class MlPredictionReviewSchema(Schema):
+    review_id = fields.UUID(required=True)
+    prediction_id = fields.UUID(required=True)
+    decision = fields.String(required=True)
+    note = fields.String(allow_none=True)
+    reviewer = fields.Nested("PrincipalSchema", required=True)
+    created_at = fields.DateTime(required=True)
+
+
+class MlPredictionReviewEnvelopeSchema(Schema):
+    review = fields.Nested(MlPredictionReviewSchema, required=True)
+
+
+class MlClaimsQuerySchema(Schema):
+    asset_id = fields.UUID(load_default=None)
+
+
+class MlClaimSchema(Schema):
+    claim_id = fields.UUID(required=True)
+    asset_id = fields.UUID(required=True)
+    claim = fields.String(required=True)
+    version = fields.String(required=True)
+    state = fields.String(required=True)
+    as_of = fields.DateTime(allow_none=True)
+    engine_version = fields.String(required=True)
+    evidence = fields.List(fields.Dict(), required=True)
+    candidates = fields.List(fields.Dict(), required=True)
+
+
+class MlClaimSummarySchema(Schema):
+    claim = fields.String(required=True)
+    state = fields.String(required=True)
+    count = fields.Integer(required=True)
+
+
+class MlClaimsEnvelopeSchema(Schema):
+    summary = fields.List(fields.Nested(MlClaimSummarySchema), required=True)
+    claims = fields.List(fields.Nested(MlClaimSchema), required=True)
+
+
 class RoleAuditEnvelopeSchema(Schema):
     events = fields.List(fields.Nested(RoleAuditEventSchema), required=True)
     pagination = fields.Nested(PaginationSchema, required=True)
@@ -180,6 +357,11 @@ class RoleAuditEnvelopeSchema(Schema):
 
 class StatusSchema(Schema):
     status = fields.String(required=True)
+
+
+class PasswordChangedSchema(StatusSchema):
+    access_token = fields.String(required=True)
+    token_type = fields.Constant("Bearer")
 
 
 class ProjectCreateSchema(Schema):
@@ -235,6 +417,7 @@ class ImportSchema(Schema):
     status = fields.String(required=True)
     error_message = fields.String(allow_none=True)
     imported_at = fields.DateTime(required=True)
+    requires_sensitive_access = fields.Boolean(required=True)
 
 
 class ImportEnvelopeSchema(Schema):
@@ -278,6 +461,39 @@ class EvidenceSchema(Schema):
 class AssetDetailEnvelopeSchema(Schema):
     asset = fields.Nested(AssetSchema, required=True)
     observations = fields.List(fields.Nested(EvidenceSchema), required=True)
+
+
+class FindingSchema(Schema):
+    finding_id = fields.UUID(required=True)
+    project_id = fields.UUID(required=True)
+    import_id = fields.UUID(required=True)
+    artifact_id = fields.UUID(required=True)
+    artifact_sha256 = fields.String(required=True)
+    asset = fields.Nested(AssetSchema, allow_none=True)
+    source = fields.String(required=True)
+    external_id = fields.String(required=True)
+    title = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    severity = fields.String(required=True)
+    status = fields.String(required=True)
+    matcher_name = fields.String(required=True)
+    matched_at = fields.String(required=True)
+    metadata = fields.Dict(required=True)
+    is_sensitive = fields.Boolean(required=True)
+    evidence_locator = fields.String(required=True)
+    parser_name = fields.String(required=True)
+    parser_version = fields.String(required=True)
+    created_at = fields.DateTime(required=True)
+    updated_at = fields.DateTime(required=True)
+
+
+class FindingEnvelopeSchema(Schema):
+    finding = fields.Nested(FindingSchema, required=True)
+
+
+class FindingsEnvelopeSchema(Schema):
+    findings = fields.List(fields.Nested(FindingSchema), required=True)
+    next_cursor = fields.UUID(allow_none=True)
 
 
 class EngagementTargetInputSchema(Schema):

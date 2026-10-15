@@ -45,6 +45,13 @@ GRANT SELECT ON
     recon.asset_property_observations,
     recon.relationship_types,
     recon.asset_relationship_observations,
+    recon.findings,
+    recon.finding_status_audit,
+    recon.finding_notes,
+    recon.import_batches,
+    recon.ml_predictions,
+    recon.ml_prediction_reviews,
+    recon.ml_claims,
     recon.engagements,
     recon.engagement_targets,
     recon.recon_runs,
@@ -64,6 +71,13 @@ GRANT INSERT ON
     recon.project_assets,
     recon.asset_property_observations,
     recon.asset_relationship_observations,
+    recon.findings,
+    recon.finding_status_audit,
+    recon.finding_notes,
+    recon.import_batches,
+    recon.ml_predictions,
+    recon.ml_prediction_reviews,
+    recon.ml_claims,
     recon.engagements,
     recon.engagement_targets,
     recon.recon_runs,
@@ -80,10 +94,13 @@ GRANT UPDATE ON
     recon.recon_run_steps
 TO {application_role};
 
+GRANT UPDATE (status, updated_at) ON recon.findings TO {application_role};
+
 GRANT DELETE ON
     recon.scope_memberships,
     recon.asset_property_observations,
     recon.asset_relationship_observations,
+    recon.findings,
     recon.engagement_targets
 TO {application_role};
 

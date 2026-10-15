@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Profil · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("profile") }}
+
+    <main class="dashboard">
+      {{ topbar("Profil & Sicherheit") }}
+
+      <div class="dashboard-content profile-page">
+        <section class="panel profile-access-panel" id="profile-access-panel" aria-live="polite">
+          <span class="section-kicker">Geschützter Bereich</span>
+          <h1 id="profile-access-title">Profil wird geladen.</h1>
+          <p id="profile-access-message">Deine Sitzung wird geprüft.</p>
+          <a class="button button-primary" href="{{ url_for('main.login') }}">Zur Anmeldung</a>
+        </section>
+
+        <div class="profile-app is-hidden" id="profile-app">
+          <section class="profile-hero" aria-labelledby="profile-title">
+            <div>
+              <span class="section-kicker">Persönlicher Bereich</span>
+              <h1 id="profile-title">Dein Profil.</h1>
+              <p>Identität und Zugangsdaten für dein lokales GreyArtifact-Konto verwalten.</p>
+            </div>
+            <a class="button project-back-link" href="{{ url_for('main.index') }}">
+              <span aria-hidden="true">←</span> Zum Dashboard
+            </a>
+          </section>
+
+          <div class="profile-grid">
+            <aside class="panel profile-summary" aria-labelledby="profile-summary-title">
+              <span class="profile-avatar" id="profile-avatar" aria-hidden="true">GA</span>
+              <h2 id="profile-summary-title">Konto</h2>
+              <strong id="profile-visible-name">—</strong>
+              <small id="profile-username">—</small>
+              <p>Der Benutzername bleibt unverändert und dient weiterhin zur Anmeldung.</p>
+            </aside>
+
+            <section class="panel" aria-labelledby="identity-settings-title">
+              <span class="section-kicker">Darstellung</span>
+              <h2 id="identity-settings-title">Profilangaben</h2>
+              <p class="panel-intro">Der Anzeigename erscheint in der Kopfzeile und im Kontomenü.</p>
+              <form class="compact-form profile-form" id="profile-form">
+                <label for="profile-display-name">Anzeigename</label>
+                <input id="profile-display-name" name="display_name" maxlength="255" placeholder="Optional">
+                <button class="button button-primary" type="submit">Profil speichern</button>
+                <p class="form-message" id="profile-message" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+
+            <section class="panel password-panel" aria-labelledby="password-title">
+              <span class="section-kicker">Kontosicherheit</span>
+              <h2 id="password-title">Passwort ändern</h2>
+              <p class="panel-intro">Zur Bestätigung wird dein aktuelles Passwort benötigt. Das neue Passwort muss mindestens zwölf Zeichen lang sein.</p>
+              <form class="compact-form profile-form" id="password-form">
+                <label for="current-password">Aktuelles Passwort</label>
+                <input id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+                <label for="new-password">Neues Passwort</label>
+                <input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="12" required>
+                <label for="confirm-password">Neues Passwort wiederholen</label>
+                <input id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="12" required>
+                <button class="button button-primary" type="submit">Passwort ändern</button>
+                <p class="form-message" id="password-message" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+          </div>
+        </div>
+
+        <footer class="dashboard-footer">
+          <span>GreyArtifact / profile</span>
+          <span>Lokale Identität · geschützter Zugang</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}

@@ -4,5 +4,6 @@ services:
       - "127.0.0.1:${INTEGRATION_DB_PORT:-55432}:5432"
 
   minio:
-    ports:
+    # Replace the console mapping from compose.yaml so a running host MinIO does not collide.
+    ports: !override
       - "127.0.0.1:${INTEGRATION_S3_PORT:-59000}:9000"

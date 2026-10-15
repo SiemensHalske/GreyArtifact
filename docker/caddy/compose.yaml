@@ -1,0 +1,21 @@
+name: greyartifact-proxy
+
+# HTTPS in front of a web process bound to 127.0.0.1, either the host
+# development server or the port published by the repository's compose.yaml.
+# Host networking is required to reach that loopback address.
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TLS_SITE_ADDRESSES: ${TLS_SITE_ADDRESSES:?set TLS_SITE_ADDRESSES}
+      TLS_UPSTREAM: 127.0.0.1:${FLASK_RUN_PORT:-5000}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

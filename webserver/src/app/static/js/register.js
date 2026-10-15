@@ -1,5 +1,10 @@
-import { apiRequest } from "./shared/api.js";
-import { initializeShell } from "./shared/shell.js";
+import { apiRequest, clearAccessToken, hasAccessToken } from "./shared/api.js";
+import {
+  initializeShell,
+  renderAnonymousIdentity,
+  renderIdentity,
+  setAdminNavigationVisible,
+} from "./shared/shell.js";
 
 const form = document.querySelector("#standalone-registration-form");
 const button = document.querySelector("#standalone-registration-button");
@@ -34,3 +39,18 @@ form.addEventListener("submit", async (event) => {
 });
 
 initializeShell();
+
+if (hasAccessToken()) {
+  Promise.all([
+    apiRequest("/api/v1/auth/me"),
+    apiRequest("/api/v1/scopes/manageable"),
+  ])
+    .then(([mePayload, manageablePayload]) => {
+      renderIdentity(mePayload.principal);
+      setAdminNavigationVisible(manageablePayload.scopes.length > 0);
+    })
+    .catch(() => {
+      clearAccessToken();
+      renderAnonymousIdentity();
+    });
+}

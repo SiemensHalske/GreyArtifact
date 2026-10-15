@@ -8,8 +8,8 @@ import {
   initializeShell,
   renderAnonymousIdentity,
   renderIdentity,
+  setAdminNavigationVisible,
 } from "./shared/shell.js";
-import { initializeProjectWorkspace } from "./dashboard/project_workspace.js";
 
 const state = {
   activeScopeId: null,
@@ -26,7 +26,8 @@ const elements = {
   loginButton: document.querySelector("#login-button"),
   loginForm: document.querySelector("#login-form"),
   loginMessage: document.querySelector("#login-message"),
-  logoutButton: document.querySelector("#logout-button"),
+  projectCreateForm: document.querySelector("#project-create-form"),
+  projectCreateMessage: document.querySelector("#project-create-message"),
   projectCount: document.querySelector("#project-count"),
   projectList: document.querySelector("#project-list"),
   registrationButton: document.querySelector("#registration-button"),
@@ -55,7 +56,6 @@ const setLoggedOut = () => {
   state.scopes = [];
   elements.authPanel.classList.remove("is-hidden");
   elements.workspacePanel.classList.add("is-hidden");
-  elements.logoutButton.classList.add("is-hidden");
   renderAnonymousIdentity();
   elements.scopeCount.textContent = "—";
   elements.projectCount.textContent = "—";
@@ -80,26 +80,20 @@ const renderProjects = (projects) => {
     const title = document.createElement("h3");
     const slug = document.createElement("code");
     const description = document.createElement("p");
-    const openButton = document.createElement("button");
+    const openLink = document.createElement("a");
     card.className = "project-card";
     header.className = "project-card-header";
     title.textContent = project.name;
     slug.textContent = project.slug;
     description.textContent = project.description || "Keine Beschreibung hinterlegt.";
-    openButton.className = "button button-quiet project-open";
-    openButton.type = "button";
-    openButton.textContent = "Öffnen →";
-    openButton.addEventListener("click", () => projectWorkspace.open(project));
+    openLink.className = "button button-quiet project-open";
+    openLink.href = `/projects/${encodeURIComponent(project.project_id)}`;
+    openLink.textContent = "Projekt öffnen →";
     header.append(title, slug);
-    card.append(header, description, openButton);
+    card.append(header, description, openLink);
     elements.projectList.append(card);
   });
 };
-
-const projectWorkspace = initializeProjectWorkspace({
-  getScopeId: () => state.activeScopeId,
-  refreshProjects: () => loadProjects(state.activeScopeId),
-});
 
 const loadProjects = async (scopeId) => {
   elements.projectCount.textContent = "…";
@@ -148,16 +142,17 @@ const renderScopes = () => {
 };
 
 const loadSession = async () => {
-  const [mePayload, scopesPayload] = await Promise.all([
+  const [mePayload, scopesPayload, manageablePayload] = await Promise.all([
     apiRequest("/api/v1/auth/me"),
     apiRequest("/api/v1/scopes"),
+    apiRequest("/api/v1/scopes/manageable"),
   ]);
   state.scopes = scopesPayload.scopes;
   renderIdentity(mePayload.principal);
+  setAdminNavigationVisible(manageablePayload.scopes.length > 0);
   elements.accessState.textContent = "Aktiv";
   elements.authPanel.classList.add("is-hidden");
   elements.workspacePanel.classList.remove("is-hidden");
-  elements.logoutButton.classList.remove("is-hidden");
   renderScopes();
 };
 
@@ -181,7 +176,9 @@ const handleLogin = async (event) => {
     elements.loginMessage.textContent =
       error.status === 401
         ? "Benutzername oder Passwort ist nicht korrekt."
-        : "Anmeldung derzeit nicht möglich.";
+        : error.status === 429
+          ? "Zu viele fehlgeschlagene Anmeldungen. Bitte später erneut versuchen."
+          : "Anmeldung derzeit nicht möglich.";
   } finally {
     elements.loginButton.disabled = false;
   }
@@ -215,6 +212,27 @@ const handleRegistration = async (event) => {
   }
 };
 
+const handleProjectCreate = async (event) => {
+  event.preventDefault();
+  elements.projectCreateMessage.textContent = "";
+  const data = new FormData(elements.projectCreateForm);
+  try {
+    await apiRequest(`/api/v1/scopes/${state.activeScopeId}/projects`, {
+      method: "POST",
+      body: JSON.stringify({
+        slug: data.get("slug"),
+        name: data.get("name"),
+        description: null,
+      }),
+    });
+    elements.projectCreateForm.reset();
+    elements.projectCreateMessage.textContent = "Projekt angelegt.";
+    await loadProjects(state.activeScopeId);
+  } catch (error) {
+    elements.projectCreateMessage.textContent = error.message;
+  }
+};
+
 const toggleAuthMode = () => {
   const showRegistration = elements.registrationForm.classList.contains("is-hidden");
   elements.registrationForm.classList.toggle("is-hidden", !showRegistration);
@@ -241,8 +259,8 @@ const checkHealth = async () => {
 initializeShell();
 elements.loginForm.addEventListener("submit", handleLogin);
 elements.registrationForm.addEventListener("submit", handleRegistration);
+elements.projectCreateForm.addEventListener("submit", handleProjectCreate);
 elements.authModeToggle.addEventListener("click", toggleAuthMode);
-elements.logoutButton.addEventListener("click", setLoggedOut);
 elements.scopeSelect.addEventListener("change", (event) => {
   state.activeScopeId = event.target.value;
   loadProjects(state.activeScopeId);

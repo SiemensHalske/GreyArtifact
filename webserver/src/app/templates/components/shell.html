@@ -1,5 +1,5 @@
 {% macro sidebar(active) %}
-  <aside class="sidebar" aria-label="Hauptnavigation">
+  <aside class="sidebar" id="main-navigation" aria-label="Hauptnavigation">
     <a class="brand" href="{{ url_for('main.index') }}" aria-label="GreyArtifact Startseite">
       <span class="brand-mark" aria-hidden="true">
         <span></span><span></span><span></span>
@@ -20,7 +20,16 @@
         Übersicht
       </a>
       <a
-        class="nav-link{% if active == 'admin' %} is-active{% endif %}"
+        class="nav-link{% if active == 'projects' %} is-active{% endif %}"
+        href="{{ url_for('main.index') }}#workspace-panel"
+        {% if active == 'projects' %}aria-current="page"{% endif %}
+      >
+        <span class="nav-icon" aria-hidden="true">▦</span>
+        Projekte
+      </a>
+      <a
+        class="nav-link is-hidden{% if active == 'admin' %} is-active{% endif %}"
+        id="admin-nav-link"
         href="{{ url_for('main.admin') }}"
         {% if active == 'admin' %}aria-current="page"{% endif %}
       >
@@ -44,8 +53,8 @@
     <div class="guardrail-card">
       <span class="guardrail-icon" aria-hidden="true">◎</span>
       <div>
-        <strong>Collection only</strong>
-        <p>Nur bereitgestellte Ergebnisse werden importiert und verwaltet.</p>
+        <strong>Controlled recon</strong>
+        <p>Imports und Recon-Läufe bleiben projektgebunden und nachvollziehbar.</p>
       </div>
     </div>
   </aside>
@@ -54,6 +63,16 @@
 
 {% macro topbar(context_label) %}
   <header class="topbar">
+    <button
+      class="nav-toggle"
+      id="nav-toggle"
+      type="button"
+      aria-label="Navigation öffnen"
+      aria-expanded="false"
+      aria-controls="main-navigation"
+    >
+      <span aria-hidden="true">☰</span>
+    </button>
     <a
       class="mobile-brand"
       href="{{ url_for('main.index') }}"
@@ -78,11 +97,34 @@
         <span class="theme-icon" id="theme-icon" aria-hidden="true">☀</span>
         <span id="theme-label">Hell</span>
       </button>
-      <span class="session-label" id="session-label">Nicht angemeldet</span>
-      <span class="avatar" id="avatar" aria-hidden="true">GA</span>
-      <button class="button button-quiet is-hidden" id="logout-button" type="button">
-        Abmelden
-      </button>
+      <div class="account-menu" id="account-menu">
+        <button
+          class="account-trigger"
+          id="account-menu-toggle"
+          type="button"
+          aria-label="Kontomenü öffnen"
+          aria-expanded="false"
+          aria-controls="account-menu-popover"
+        >
+          <span class="session-label" id="session-label">Nicht angemeldet</span>
+          <span class="avatar" id="avatar" aria-hidden="true">GA</span>
+        </button>
+        <div class="account-popover is-hidden" id="account-menu-popover">
+          <div class="account-summary">
+            <strong id="account-menu-name">Nicht angemeldet</strong>
+            <small id="account-menu-username">Lokaler Zugang</small>
+          </div>
+          <a class="account-menu-item" id="account-login-link" href="{{ url_for('main.login') }}">
+            <span aria-hidden="true">→</span> Anmelden
+          </a>
+          <a class="account-menu-item is-hidden" id="account-profile-link" href="{{ url_for('main.profile') }}">
+            <span aria-hidden="true">◇</span> Profil &amp; Sicherheit
+          </a>
+          <button class="account-menu-item account-logout is-hidden" id="logout-button" type="button">
+            <span aria-hidden="true">↪</span> Abmelden
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 {% endmacro %}

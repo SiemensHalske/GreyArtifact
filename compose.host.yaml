@@ -1,0 +1,4 @@
+services:
+  minio:
+    ports:
+      - "127.0.0.1:${HOST_S3_PORT:-9000}:9000"

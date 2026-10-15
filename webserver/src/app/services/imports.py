@@ -10,13 +10,14 @@ from app.models import (
     AssetPropertyObservation,
     AssetRelationshipObservation,
     AssetType,
+    Finding,
     ImportRecord,
     ProjectAsset,
     PropertyType,
     RelationshipType,
 )
 from app.services.artifact_storage import get_artifact_storage
-from app.services.parsers import PARSER_VERSIONS, ParsedAsset, ParserError, parse_jsonl
+from app.services.parsers import PARSER_VERSIONS, ParsedAsset, ParserError, parse_report
 
 
 class ImportConfigurationError(RuntimeError):
@@ -67,7 +68,7 @@ def process_import(import_id: UUID) -> ImportRecord:
     artifact = db.session.get(Artifact, import_record.artifact_id)
     storage = get_artifact_storage()
     try:
-        report = parse_jsonl(
+        report = parse_report(
             import_record.parser_name,
             storage.iter_bytes(artifact.storage_key),
         )
@@ -80,6 +81,9 @@ def process_import(import_id: UUID) -> ImportRecord:
             delete(AssetRelationshipObservation).where(
                 AssetRelationshipObservation.import_id == import_record.import_id
             )
+        )
+        db.session.execute(
+            delete(Finding).where(Finding.import_id == import_record.import_id)
         )
         mapped_assets = {
             key: _get_or_create_asset(parsed) for key, parsed in report.assets.items()
@@ -134,6 +138,34 @@ def process_import(import_id: UUID) -> ImportRecord:
                     relationship_type_id=relationship_type.relationship_type_id,
                     target_asset_id=target.asset_id,
                     evidence_locator=f"line:{observation.line}",
+                )
+            )
+        for parsed_finding in report.findings:
+            asset = None
+            if parsed_finding.asset is not None:
+                asset = mapped_assets[
+                    (
+                        parsed_finding.asset.type_code,
+                        parsed_finding.asset.canonical_value,
+                    )
+                ]
+            db.session.add(
+                Finding(
+                    finding_id=uuid4(),
+                    project_id=import_record.project_id,
+                    import_id=import_record.import_id,
+                    asset_id=asset.asset_id if asset else None,
+                    source=parsed_finding.source,
+                    external_id=parsed_finding.external_id,
+                    title=parsed_finding.title,
+                    description=parsed_finding.description,
+                    severity=parsed_finding.severity,
+                    status="new",
+                    matcher_name=parsed_finding.matcher_name,
+                    matched_at=parsed_finding.matched_at,
+                    metadata_json=parsed_finding.metadata,
+                    is_sensitive=parsed_finding.is_sensitive,
+                    evidence_locator=f"line:{parsed_finding.line}",
                 )
             )
         import_record.parser_version = parser_name

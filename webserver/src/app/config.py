@@ -12,6 +12,10 @@ class Config:
     OPENAPI_JSON_PATH = "openapi.json"
     OPENAPI_SWAGGER_UI_PATH = None
     MAX_ARTIFACT_BYTES = 100 * 1024 * 1024
+    LOGIN_THROTTLE_WINDOW_SECONDS = 15 * 60
+    LOGIN_MAX_FAILURES_PER_USERNAME = 5
+    LOGIN_MAX_FAILURES_PER_ADDRESS = 20
+    TRUSTED_PROXY_COUNT = 0
     RUNNER_SUBFINDER_PATH = "/opt/greyartifact/bin/subfinder"
     RUNNER_DNSX_PATH = "/opt/greyartifact/bin/dnsx"
     RUNNER_HTTPX_PATH = "/opt/greyartifact/bin/httpx"

@@ -68,6 +68,18 @@
           </form>
         </section>
 
+        <section class="panel admin-login is-hidden" id="admin-denied-panel" aria-labelledby="admin-denied-title">
+          <div>
+            <span class="section-kicker">Keine Verwaltungsberechtigung</span>
+            <h2 id="admin-denied-title">Administration nicht verfügbar</h2>
+            <p>
+              Dieses Konto besitzt in keinem Arbeitsbereich die Berechtigung
+              <code>membership.manage</code>.
+            </p>
+          </div>
+          <a class="button admin-back-link" href="{{ url_for('main.index') }}">Zum Dashboard</a>
+        </section>
+
         <div class="admin-app is-hidden" id="admin-app">
           <section class="admin-toolbar" aria-label="Arbeitsbereich auswählen">
             <div>

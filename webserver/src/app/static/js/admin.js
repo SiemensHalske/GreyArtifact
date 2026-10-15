@@ -9,6 +9,7 @@ import {
   initials,
   renderAnonymousIdentity,
   renderIdentity,
+  setAdminNavigationVisible,
 } from "./shared/shell.js";
 
 const BASE_ROLES = [
@@ -41,13 +42,13 @@ const state = {
 const elements = {
   activeScopeName: document.querySelector("#active-scope-name"),
   adminApp: document.querySelector("#admin-app"),
+  adminDeniedPanel: document.querySelector("#admin-denied-panel"),
   adminLoginButton: document.querySelector("#admin-login-button"),
   adminLoginForm: document.querySelector("#admin-login-form"),
   adminLoginMessage: document.querySelector("#admin-login-message"),
   adminLoginPanel: document.querySelector("#admin-login-panel"),
   auditList: document.querySelector("#audit-list"),
   auditLoadMore: document.querySelector("#audit-load-more"),
-  logoutButton: document.querySelector("#logout-button"),
   managedScopeCount: document.querySelector("#managed-scope-count"),
   memberCount: document.querySelector("#member-count"),
   memberForm: document.querySelector("#member-form"),
@@ -93,8 +94,8 @@ const setLoggedOut = () => {
   state.auditPages = 0;
   state.scopes = [];
   renderAnonymousIdentity();
-  elements.logoutButton.classList.add("is-hidden");
   elements.adminApp.classList.add("is-hidden");
+  elements.adminDeniedPanel.classList.add("is-hidden");
   elements.adminLoginPanel.classList.remove("is-hidden");
   elements.adminLoginForm.reset();
   elements.pendingCount.textContent = "—";
@@ -405,9 +406,15 @@ const loadAdmin = async () => {
   ]);
   renderIdentity(mePayload.principal);
   state.scopes = scopesPayload.scopes;
+  setAdminNavigationVisible(state.scopes.length > 0);
   elements.adminLoginPanel.classList.add("is-hidden");
+  if (state.scopes.length === 0) {
+    elements.adminApp.classList.add("is-hidden");
+    elements.adminDeniedPanel.classList.remove("is-hidden");
+    return;
+  }
+  elements.adminDeniedPanel.classList.add("is-hidden");
   elements.adminApp.classList.remove("is-hidden");
-  elements.logoutButton.classList.remove("is-hidden");
   renderScopes();
 };
 
@@ -431,7 +438,9 @@ const handleLogin = async (event) => {
     elements.adminLoginMessage.textContent =
       error.status === 401
         ? "Benutzername oder Passwort ist nicht korrekt."
-        : "Admin-Bereich derzeit nicht verfügbar.";
+        : error.status === 429
+          ? "Zu viele fehlgeschlagene Anmeldungen. Bitte später erneut versuchen."
+          : "Admin-Bereich derzeit nicht verfügbar.";
   } finally {
     elements.adminLoginButton.disabled = false;
   }
@@ -595,7 +604,6 @@ elements.registrationList.addEventListener("click", handleRegistrationDecision);
 elements.memberForm.addEventListener("submit", handleMemberCreation);
 elements.memberList.addEventListener("click", handleMemberRoleAction);
 elements.auditLoadMore.addEventListener("click", handleAuditLoadMore);
-elements.logoutButton.addEventListener("click", setLoggedOut);
 elements.scopeSelect.addEventListener("change", (event) => {
   elements.memberMessage.textContent = "";
   loadScope(event.target.value);

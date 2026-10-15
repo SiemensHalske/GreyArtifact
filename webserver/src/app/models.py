@@ -97,6 +97,9 @@ class Principal(db.Model):
     is_active: Mapped[bool] = mapped_column(
         db.Boolean, nullable=False, server_default=db.true()
     )
+    credentials_version: Mapped[int] = mapped_column(
+        db.Integer, nullable=False, default=0, server_default=text("0")
+    )
     created_at: Mapped[datetime] = mapped_column(
         db.DateTime(timezone=True),
         nullable=False,
@@ -336,6 +339,9 @@ class ImportRecord(db.Model):
     recon_run_step_id: Mapped[UUID | None] = mapped_column(
         db.Uuid, ForeignKey(f"{SCHEMA}.recon_run_steps.step_id")
     )
+    batch_id: Mapped[UUID | None] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.import_batches.batch_id")
+    )
 
 
 class AssetType(db.Model):
@@ -445,6 +451,284 @@ class AssetRelationshipObservation(db.Model):
     observed_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
     confidence: Mapped[float | None] = mapped_column(db.Numeric(5, 4))
     evidence_locator: Mapped[str | None] = mapped_column(db.Text)
+
+
+class Finding(db.Model):
+    __tablename__ = "findings"
+    __table_args__ = (
+        UniqueConstraint(
+            "import_id",
+            "external_id",
+            "matcher_name",
+            "matched_at",
+            name="findings_import_match_unique",
+        ),
+        Index("findings_project_created_idx", "project_id", text("created_at DESC")),
+        Index("findings_project_severity_idx", "project_id", "severity", "status"),
+        {"schema": SCHEMA},
+    )
+
+    finding_id: Mapped[UUID] = mapped_column(db.Uuid, primary_key=True)
+    project_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.projects.project_id"), nullable=False
+    )
+    import_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.imports.import_id"), nullable=False
+    )
+    asset_id: Mapped[UUID | None] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.assets.asset_id")
+    )
+    source: Mapped[str] = mapped_column(db.Text, nullable=False)
+    external_id: Mapped[str] = mapped_column(db.Text, nullable=False)
+    title: Mapped[str] = mapped_column(db.Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(db.Text)
+    severity: Mapped[str] = mapped_column(db.Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        db.Text, nullable=False, server_default=text("'new'")
+    )
+    matcher_name: Mapped[str] = mapped_column(
+        db.Text, nullable=False, server_default=text("''")
+    )
+    matched_at: Mapped[str] = mapped_column(db.Text, nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(
+        db.JSON, nullable=False, default=dict, server_default=text("'{}'")
+    )
+    is_sensitive: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, server_default=db.false()
+    )
+    evidence_locator: Mapped[str] = mapped_column(db.Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True), nullable=False, server_default=func.current_timestamp()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True), nullable=False, server_default=func.current_timestamp()
+    )
+
+
+class FindingStatusAudit(db.Model):
+    __tablename__ = "finding_status_audit"
+    __table_args__ = (
+        Index(
+            "finding_status_audit_finding_changed_idx",
+            "finding_id",
+            text("changed_at DESC"),
+            text("audit_id DESC"),
+        ),
+        {"schema": SCHEMA},
+    )
+
+    audit_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    finding_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.findings.finding_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    changed_by: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.principals.principal_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status_before: Mapped[str] = mapped_column(db.Text, nullable=False)
+    status_after: Mapped[str] = mapped_column(db.Text, nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
+
+
+class FindingNote(db.Model):
+    __tablename__ = "finding_notes"
+    __table_args__ = (
+        CheckConstraint("btrim(body) <> ''", name="finding_notes_body_not_blank"),
+        Index("finding_notes_finding_created_idx", "finding_id", "created_at", "note_id"),
+        {"schema": SCHEMA},
+    )
+
+    note_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    finding_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.findings.finding_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    author_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.principals.principal_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    body: Mapped[str] = mapped_column(db.Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
+
+
+class ImportBatch(db.Model):
+    __tablename__ = "import_batches"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "source",
+            "external_run_ref",
+            name="import_batches_run_unique",
+        ),
+        Index(
+            "import_batches_project_created_idx",
+            "project_id",
+            text("created_at DESC"),
+            text("batch_id DESC"),
+        ),
+        {"schema": SCHEMA},
+    )
+
+    batch_id: Mapped[UUID] = mapped_column(
+        db.Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.projects.project_id"), nullable=False
+    )
+    source: Mapped[str] = mapped_column(db.Text, nullable=False)
+    manifest_version: Mapped[str] = mapped_column(db.Text, nullable=False)
+    external_run_ref: Mapped[str] = mapped_column(db.Text, nullable=False)
+    engagement_reference: Mapped[str | None] = mapped_column(db.Text)
+    ml_model: Mapped[str] = mapped_column(db.Text, nullable=False)
+    ml_model_version: Mapped[str] = mapped_column(db.Text, nullable=False)
+    ml_model_status: Mapped[str] = mapped_column(db.Text, nullable=False)
+    ml_inference_run_ref: Mapped[str] = mapped_column(db.Text, nullable=False)
+    manifest_json: Mapped[dict] = mapped_column(db.JSON, nullable=False)
+    created_by: Mapped[UUID | None] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.principals.principal_id")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
+
+
+class MlPrediction(db.Model):
+    __tablename__ = "ml_predictions"
+    __table_args__ = (
+        UniqueConstraint(
+            "import_id", "asset_id", name="ml_predictions_import_asset_unique"
+        ),
+        Index("ml_predictions_batch_rank_idx", "batch_id", "rank"),
+        Index("ml_predictions_asset_idx", "asset_id"),
+        {"schema": SCHEMA},
+    )
+
+    prediction_id: Mapped[UUID] = mapped_column(
+        db.Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    batch_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.import_batches.batch_id"), nullable=False
+    )
+    import_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.imports.import_id"), nullable=False
+    )
+    asset_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.assets.asset_id"), nullable=False
+    )
+    model_version: Mapped[str] = mapped_column(db.Text, nullable=False)
+    model_status: Mapped[str] = mapped_column(db.Text, nullable=False)
+    percentile: Mapped[float] = mapped_column(db.Float, nullable=False)
+    rank: Mapped[int] = mapped_column(db.Integer, nullable=False)
+    explanation_json: Mapped[dict] = mapped_column(
+        db.JSON, nullable=False, default=dict, server_default=text("'{}'")
+    )
+    evidence_locator: Mapped[str] = mapped_column(db.Text, nullable=False)
+    is_sensitive: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, server_default=db.false()
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
+
+
+class MlPredictionReview(db.Model):
+    __tablename__ = "ml_prediction_reviews"
+    __table_args__ = (
+        Index(
+            "ml_prediction_reviews_prediction_created_idx",
+            "prediction_id",
+            text("created_at DESC"),
+            text("review_id DESC"),
+        ),
+        Index("ml_prediction_reviews_reviewer_idx", "reviewer_id"),
+        {"schema": SCHEMA},
+    )
+
+    review_id: Mapped[UUID] = mapped_column(
+        db.Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    prediction_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.ml_predictions.prediction_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    reviewer_id: Mapped[UUID] = mapped_column(
+        db.Uuid,
+        ForeignKey(f"{SCHEMA}.principals.principal_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    decision: Mapped[str] = mapped_column(db.Text, nullable=False)
+    note: Mapped[str | None] = mapped_column(db.Text)
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
+
+
+class MlClaim(db.Model):
+    __tablename__ = "ml_claims"
+    __table_args__ = (
+        UniqueConstraint(
+            "import_id", "asset_id", "claim_key", name="ml_claims_import_asset_claim_unique"
+        ),
+        Index("ml_claims_batch_asset_idx", "batch_id", "asset_id"),
+        {"schema": SCHEMA},
+    )
+
+    claim_id: Mapped[UUID] = mapped_column(
+        db.Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    batch_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.import_batches.batch_id"), nullable=False
+    )
+    import_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.imports.import_id"), nullable=False
+    )
+    asset_id: Mapped[UUID] = mapped_column(
+        db.Uuid, ForeignKey(f"{SCHEMA}.assets.asset_id"), nullable=False
+    )
+    claim_key: Mapped[str] = mapped_column(db.Text, nullable=False)
+    claim_version: Mapped[str] = mapped_column(db.Text, nullable=False)
+    state: Mapped[str] = mapped_column(db.Text, nullable=False)
+    as_of: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
+    engine_version: Mapped[str] = mapped_column(db.Text, nullable=False)
+    evidence_json: Mapped[list] = mapped_column(
+        db.JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
+    candidates_json: Mapped[list] = mapped_column(
+        db.JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.current_timestamp(),
+    )
 
 
 class Engagement(db.Model):

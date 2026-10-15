@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Projekt · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("projects") }}
+
+    <main class="dashboard" id="project-page" data-project-id="{{ project_id }}">
+      {{ topbar("Projektbereich") }}
+
+      <div class="dashboard-content project-page-content">
+        <section class="panel project-access-panel" id="project-access-panel" aria-live="polite">
+          <span class="section-kicker">Geschützter Projektbereich</span>
+          <h1 id="project-access-title">Projektzugriff wird geprüft.</h1>
+          <p id="project-access-message">Sitzung und Projektberechtigung werden geladen.</p>
+          <a class="button button-primary" href="{{ url_for('main.index') }}">Zum Dashboard</a>
+        </section>
+
+        <div class="project-app is-hidden" id="project-app">
+          <section class="project-hero" aria-labelledby="project-title">
+            <div>
+              <div class="project-breadcrumb">
+                <a href="{{ url_for('main.index') }}#workspace-panel">Projekte</a>
+                <span aria-hidden="true">/</span>
+                <span id="project-breadcrumb-name">Projekt</span>
+              </div>
+              <span class="section-kicker" id="project-scope-name">Arbeitsbereich</span>
+              <h1 id="project-title">Projekt wird geladen</h1>
+              <p id="project-description"></p>
+            </div>
+            <a class="button project-back-link" href="{{ url_for('main.index') }}#workspace-panel">
+              <span aria-hidden="true">←</span> Alle Projekte
+            </a>
+          </section>
+
+          <nav class="project-tabs" aria-label="Projektbereiche">
+            <button class="project-tab is-active" type="button" data-project-view="overview" aria-selected="true">Übersicht</button>
+            <button class="project-tab" type="button" data-project-view="findings" aria-selected="false">Findings</button>
+            <button class="project-tab" type="button" data-project-view="ml" aria-selected="false">ML-Priorisierung</button>
+            <button class="project-tab" type="button" data-project-view="evidence" aria-selected="false">Evidenz</button>
+            <button class="project-tab" type="button" data-project-view="imports" aria-selected="false">Imports</button>
+            <button class="project-tab" type="button" data-project-view="recon" aria-selected="false">Recon</button>
+            <button class="project-tab" type="button" data-project-view="settings" aria-selected="false">Einstellungen</button>
+          </nav>
+
+          <p class="form-message project-page-message" id="project-page-message" role="status" aria-live="polite"></p>
+
+          <section class="project-view" data-project-panel="overview" aria-labelledby="overview-title">
+            <div class="panel project-overview-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="section-kicker">Projektzentrale</span>
+                  <h2 id="overview-title">Arbeitsstand</h2>
+                  <p class="panel-intro" id="project-overview-description"></p>
+                </div>
+                <code class="project-slug" id="project-slug"></code>
+              </div>
+              <div class="project-area-grid">
+                <a class="project-area-card" href="#findings">
+                  <span class="project-area-icon" aria-hidden="true">!</span>
+                  <strong>Findings prüfen</strong>
+                  <p>Normalisierte Nuclei-Befunde nach Schweregrad filtern und bis zum Rohartefakt zurückverfolgen.</p>
+                  <span>Öffnen →</span>
+                </a>
+                <a class="project-area-card" href="#ml">
+                  <span class="project-area-icon" aria-hidden="true">▲</span>
+                  <strong>ML-Priorisierung</strong>
+                  <p>recon_ml-Läufe nach Rang sichten; Kandidatenmodelle sind als nicht validiert markiert.</p>
+                  <span>Öffnen →</span>
+                </a>
+                <a class="project-area-card" href="#evidence">
+                  <span class="project-area-icon" aria-hidden="true">◇</span>
+                  <strong>Evidenz untersuchen</strong>
+                  <p>Normalisierte Assets filtern und bis zum Rohartefakt zurückverfolgen.</p>
+                  <span>Öffnen →</span>
+                </a>
+                <a class="project-area-card" href="#imports">
+                  <span class="project-area-icon" aria-hidden="true">⇣</span>
+                  <strong>Daten importieren</strong>
+                  <p>Asset-Listen oder Tool-Artefakte unverändert speichern und kontrolliert verarbeiten.</p>
+                  <span>Öffnen →</span>
+                </a>
+                <a class="project-area-card" href="#recon">
+                  <span class="project-area-icon" aria-hidden="true">◎</span>
+                  <strong>Recon steuern</strong>
+                  <p>Autorisierungen bündeln, Runs starten und ihren Status verfolgen.</p>
+                  <span>Öffnen →</span>
+                </a>
+                <a class="project-area-card" href="#settings">
+                  <span class="project-area-icon" aria-hidden="true">⚙</span>
+                  <strong>Projekt verwalten</strong>
+                  <p>Name, Slug und Beschreibung dieses Projekts bearbeiten.</p>
+                  <span>Öffnen →</span>
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="findings" aria-labelledby="findings-title">
+            <div class="panel">
+              <div class="section-toolbar project-section-heading">
+                <div>
+                  <span class="section-kicker">Normalisierte Befunde</span>
+                  <h2 id="findings-title">Findings</h2>
+                </div>
+                <form class="filter-form finding-filter-form" id="finding-filter-form">
+                  <input name="q" aria-label="Findings durchsuchen" placeholder="Titel, Template oder Ziel">
+                  <select name="severity" aria-label="Schweregrad">
+                    <option value="">Alle Schweregrade</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                    <option value="info">Info</option>
+                    <option value="unknown">Unbekannt</option>
+                  </select>
+                  <select name="status" aria-label="Finding-Status">
+                    <option value="">Alle Status</option>
+                    <option value="new">Neu</option>
+                    <option value="confirmed">Bestätigt</option>
+                    <option value="false_positive">False Positive</option>
+                    <option value="remediated">Behoben</option>
+                    <option value="accepted">Akzeptiert</option>
+                  </select>
+                  <button class="button button-quiet" type="submit">Filtern</button>
+                </form>
+              </div>
+              <div class="evidence-grid finding-grid">
+                <div class="record-list" id="finding-list"></div>
+                <div class="evidence-detail finding-detail empty-state" id="finding-detail">Finding auswählen, um Herkunft und Metadaten zu sehen.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="ml" aria-labelledby="ml-title">
+            <div class="panel">
+              <div class="section-toolbar project-section-heading">
+                <div>
+                  <span class="section-kicker">recon_ml</span>
+                  <h2 id="ml-title">ML-Priorisierung</h2>
+                </div>
+                <form class="filter-form finding-status-form" id="ml-run-form">
+                  <select name="batch" id="ml-batch-select" aria-label="recon_ml-Lauf auswählen"></select>
+                </form>
+              </div>
+              <div class="ml-claims-summary" id="ml-claims-summary" hidden></div>
+              <div class="evidence-grid finding-grid">
+                <div class="record-list" id="ml-list"></div>
+                <div class="evidence-detail finding-detail empty-state" id="ml-detail">Vorhersage auswählen, um Modell und Erklärung zu sehen.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="evidence" aria-labelledby="evidence-title">
+            <div class="panel">
+              <div class="section-toolbar project-section-heading">
+                <div>
+                  <span class="section-kicker">Normalisierte Sicht</span>
+                  <h2 id="evidence-title">Assets &amp; Evidenz</h2>
+                </div>
+                <form class="filter-form" id="asset-filter-form">
+                  <input name="q" aria-label="Assets durchsuchen" placeholder="Domain, IP oder URL">
+                  <select name="type" aria-label="Asset-Typ">
+                    <option value="">Alle Typen</option>
+                    <option value="domain">Domains</option>
+                    <option value="ipv4">IPv4</option>
+                    <option value="ipv6">IPv6</option>
+                    <option value="url">URLs</option>
+                    <option value="service_endpoint">Services</option>
+                  </select>
+                  <button class="button button-quiet" type="submit">Filtern</button>
+                </form>
+              </div>
+              <div class="evidence-grid">
+                <div class="record-list" id="asset-list"></div>
+                <div class="evidence-detail empty-state" id="evidence-detail">Asset auswählen, um die Herkunft zu sehen.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="imports" aria-labelledby="imports-title">
+            <div class="workspace-columns project-section-grid">
+              <section class="panel">
+                <span class="section-kicker">Quellartefakt</span>
+                <h2 id="imports-title">Daten hinzufügen</h2>
+                <p class="panel-intro">Datei hochladen oder eine einfache Asset-Liste einfügen. Das Original bleibt unverändert.</p>
+                <form class="compact-form project-form" id="import-form">
+                  <label for="import-format">Importformat</label>
+                  <select id="import-format" name="format">
+                    <option value="simple_list">Einfache Domain-, IP- oder URL-Liste</option>
+                    <option value="subfinder">Subfinder JSONL</option>
+                    <option value="dnsx">DNSx JSONL</option>
+                    <option value="httpx">ProjectDiscovery HTTPx JSONL</option>
+                    <option value="nuclei">ProjectDiscovery Nuclei JSONL</option>
+                  </select>
+                  <label for="import-file">Quelldatei</label>
+                  <input id="import-file" name="file" type="file" accept=".txt,.jsonl,application/x-ndjson,application/json,text/plain">
+                  <div class="import-text-group" id="import-text-group">
+                    <label for="import-text">Oder Werte einfügen</label>
+                    <textarea id="import-text" name="text" placeholder="example.org&#10;192.0.2.10&#10;https://example.org/login"></textarea>
+                    <small>Eine Domain, IP-Adresse oder HTTP(S)-URL pro Zeile. Leere Zeilen und Zeilen mit <code>#</code> werden ignoriert.</small>
+                  </div>
+                  <p class="section-note" id="import-format-hint">Für einfache Listen genügt eine Datei oder eingefügter Text.</p>
+                  <button class="button button-primary" type="submit">Import anlegen</button>
+                  <p class="form-message" id="import-message" role="status"></p>
+                </form>
+              </section>
+              <section class="panel">
+                <div class="section-toolbar">
+                  <div>
+                    <span class="section-kicker">Importverlauf</span>
+                    <h2>Gespeicherte Reports</h2>
+                  </div>
+                  <button class="button button-quiet" id="imports-refresh" type="button">Aktualisieren</button>
+                </div>
+                <div class="record-list" id="import-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="recon" aria-labelledby="recon-title">
+            <div class="workspace-columns project-section-grid">
+              <section class="panel">
+                <span class="section-kicker">Autorisierter Scope</span>
+                <h2 id="recon-title">Engagement anlegen</h2>
+                <form class="compact-form project-form" id="engagement-form">
+                  <label for="engagement-name">Bezeichnung</label>
+                  <input id="engagement-name" name="name" maxlength="255" required>
+                  <label for="engagement-authorization">Autorisierungs-URL</label>
+                  <input id="engagement-authorization" name="authorization_reference" type="url" required>
+                  <div class="date-pair">
+                    <label>Gültig ab<input name="valid_from" type="date" required></label>
+                    <label>Gültig bis<input name="valid_until" type="date" required></label>
+                  </div>
+                  <label for="engagement-allowed">Erlaubte Domains (eine pro Zeile)</label>
+                  <textarea id="engagement-allowed" name="allowed_targets" required></textarea>
+                  <label for="engagement-excluded">Ausgeschlossene Domains</label>
+                  <textarea id="engagement-excluded" name="excluded_targets"></textarea>
+                  <button class="button button-primary" type="submit">Engagement speichern</button>
+                  <p class="form-message" id="engagement-message" role="status"></p>
+                </form>
+                <div class="record-list" id="engagement-list"></div>
+              </section>
+
+              <section class="panel">
+                <div class="section-toolbar">
+                  <div>
+                    <span class="section-kicker">Kontrollierte Ausführung</span>
+                    <h2>Recon-Runs</h2>
+                  </div>
+                  <button class="button button-quiet" id="runs-refresh" type="button">Aktualisieren</button>
+                </div>
+                <p class="section-note">Nur das feste Profil <code>domain_basic_v1</code>; Ausführung erfolgt im separaten Runner.</p>
+                <div class="record-list" id="run-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="project-view is-hidden" data-project-panel="settings" aria-labelledby="settings-title">
+            <div class="panel project-settings-panel">
+              <span class="section-kicker">Projektverwaltung</span>
+              <h2 id="settings-title">Allgemeine Angaben</h2>
+              <p class="panel-intro">Diese Werte gelten nur für das aktuelle Projekt.</p>
+              <form class="compact-form project-form" id="project-edit-form">
+                <label class="field-label" for="project-edit-slug">
+                  Slug
+                  <span class="field-help" tabindex="0" aria-label="Hilfe zum Projekt-Slug" aria-describedby="project-edit-slug-help">?</span>
+                  <span class="field-help-content" id="project-edit-slug-help" role="tooltip">
+                    Technischer, eindeutiger Kurzname für URLs und die API. Verwende nur Kleinbuchstaben, Zahlen und Bindestriche.
+                  </span>
+                </label>
+                <input id="project-edit-slug" name="slug" pattern="[a-z0-9-]+" maxlength="63" required>
+                <label class="field-label" for="project-edit-name">
+                  Projektname
+                  <span class="field-help" tabindex="0" aria-label="Hilfe zum Projektnamen" aria-describedby="project-edit-name-help">?</span>
+                  <span class="field-help-content" id="project-edit-name-help" role="tooltip">
+                    Gut lesbarer Anzeigename. Er darf Leerzeichen enthalten.
+                  </span>
+                </label>
+                <input id="project-edit-name" name="name" maxlength="255" required>
+                <label for="project-edit-description">Beschreibung</label>
+                <textarea id="project-edit-description" name="description" maxlength="4000"></textarea>
+                <button class="button button-primary" type="submit">Änderungen speichern</button>
+                <p class="form-message" id="project-edit-message" role="status"></p>
+              </form>
+            </div>
+          </section>
+        </div>
+
+        <footer class="dashboard-footer">
+          <span>GreyArtifact / project workspace</span>
+          <span>Import · Evidenz · autorisierte Recon</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/project.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greyartifact.local/schemas/greyartifact-run-manifest/v1",
+  "title": "GreyArtifact run manifest v1",
+  "description": "Describes one reconnaissance run exported as a package of raw artifacts and a mandatory recon_ml result. Every referenced file is content-addressed by SHA-256. No credentials, proxy, Tor, or chaffing configuration is permitted in the package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_version", "source", "run", "tools", "ml"],
+  "properties": {
+    "manifest_version": {
+      "const": "greyartifact-run-manifest/v1"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Producing system, for example \"fennec\"."
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["external_ref", "started_at"],
+      "properties": {
+        "external_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The producing system's own run identifier."
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "engagement_reference": {
+          "type": "string",
+          "description": "Authorization reference for the run; mapped to a GreyArtifact project on import."
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "description": "Raw recon tool outputs. May be empty only if the run produced no raw output.",
+      "items": { "$ref": "#/$defs/artifactEntry" }
+    },
+    "ml": {
+      "type": "object",
+      "description": "Mandatory recon_ml result. A package without a completed ML run is rejected.",
+      "additionalProperties": false,
+      "required": [
+        "model", "version", "status", "pipeline_release",
+        "inference_run_ref", "file", "parser", "sha256"
+      ],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["candidate", "validated", "approved", "retired"]
+        },
+        "pipeline_release": { "type": "string", "minLength": 1 },
+        "inference_run_ref": { "type": "string", "minLength": 1 },
+        "dataset_version": { "type": "string" },
+        "file": { "$ref": "#/$defs/relativePath" },
+        "parser": { "const": "recon_ml_predictions_v1" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "description": "Optional recon_ml Stage-8 claim states with open acquisition candidates and recommendations. Display only; GreyArtifact never executes a candidate.",
+      "additionalProperties": false,
+      "required": ["file", "parser", "sha256"],
+      "properties": {
+        "file": { "$ref": "#/$defs/relativePath" },
+        "parser": { "const": "recon_ml_claims_v1" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the file's bytes."
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\][^\\\\]*$",
+      "description": "Path relative to the package root; no leading slash, no backslashes, no parent references."
+    },
+    "artifactEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "file", "parser", "sha256", "redaction"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "file": { "$ref": "#/$defs/relativePath" },
+        "parser": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "redaction": {
+          "type": "string",
+          "enum": ["raw", "redacted"],
+          "description": "Whether the producing system redacted secrets from this artifact before export."
+        }
+      }
+    }
+  }
+}

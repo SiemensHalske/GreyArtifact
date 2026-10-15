@@ -1,0 +1,11 @@
+{
+	# Host networking would expose the admin API on the host's localhost.
+	admin off
+	# LAN addresses cannot get public certificates; use Caddy's local CA.
+	local_certs
+	skip_install_trust
+}
+
+{$TLS_SITE_ADDRESSES} {
+	reverse_proxy {$TLS_UPSTREAM}
+}

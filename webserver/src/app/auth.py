@@ -1,8 +1,20 @@
 from uuid import UUID
 
+from flask_jwt_extended import create_access_token
+
 from app.api import error_response
 from app.extensions import db, jwt
 from app.models import Principal
+
+
+CREDENTIALS_VERSION_CLAIM = "cver"
+
+
+def issue_access_token(principal: Principal) -> str:
+    return create_access_token(
+        identity=str(principal.principal_id),
+        additional_claims={CREDENTIALS_VERSION_CLAIM: principal.credentials_version},
+    )
 
 
 def configure_jwt() -> None:
@@ -15,6 +27,9 @@ def configure_jwt() -> None:
 
         principal = db.session.get(Principal, principal_id)
         if principal is None or not principal.is_active:
+            return None
+        # A password change invalidates every token issued before it.
+        if jwt_data.get(CREDENTIALS_VERSION_CLAIM) != principal.credentials_version:
             return None
         return principal
 

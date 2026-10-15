@@ -37,3 +37,6 @@ recon_pipeline/
 
 # Personal founding documents, never published
 docs/gruendung/
+
+# Local GitHub token for gh auth, never committed
+.github_key.txt

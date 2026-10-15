@@ -155,6 +155,13 @@ Start the development server from the repository root with:
 Keep `FLASK_RUN_HOST=127.0.0.1` and `FLASK_DEBUG=0` whenever the host is
 reachable from a network: the Werkzeug debugger allows code execution.
 
+On a host reachable from a network, run the app under gunicorn behind the
+reverse proxy instead. `webserver/scripts/host_serve.sh` starts it on
+`127.0.0.1:${FLASK_RUN_PORT:-5000}` with one worker and eight threads: the
+login throttle counts failures in process memory, so several workers would each
+keep their own count. It is meant for cron (`@reboot` plus an every-minute
+guard) and appends to `app.log`.
+
 ### Artifact storage for the host development server
 
 When the web process runs directly on the host, start only MinIO from the

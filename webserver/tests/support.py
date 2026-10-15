@@ -11,6 +11,9 @@ class InMemoryArtifactStorage:
         self.max_bytes = max_bytes
         self.objects = {}
 
+    def check(self):
+        return None
+
     def store(self, source, media_type=None):
         output = io.BytesIO()
         digest = sha256()

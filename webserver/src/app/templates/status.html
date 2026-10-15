@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "components/shell.html" import sidebar, topbar %}
+
+{% block title %}Systemstatus · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="app-shell">
+    {{ sidebar("status") }}
+
+    <main class="dashboard">
+      {{ topbar("Systemstatus") }}
+
+      <div class="dashboard-content profile-page">
+        <section class="panel profile-access-panel" id="status-access-panel" aria-live="polite">
+          <span class="section-kicker">Geschützter Bereich</span>
+          <h1 id="status-access-title">Systemstatus wird geladen.</h1>
+          <p id="status-access-message">Deine Sitzung wird geprüft.</p>
+          <a class="button button-primary" id="status-login-link" href="{{ url_for('main.login') }}">Zur Anmeldung</a>
+        </section>
+
+        <div class="status-app is-hidden" id="status-app">
+          <section class="status-hero" id="status-hero" data-state="pending" aria-labelledby="status-headline">
+            <div class="status-hero-main">
+              <span class="section-kicker">Live-Prüfung · nur Owner und Admins</span>
+              <h1 id="status-headline">
+                <span class="status-pulse" aria-hidden="true"></span>
+                <span id="status-headline-text">Status wird geprüft …</span>
+              </h1>
+              <p id="status-generated" role="status"></p>
+            </div>
+            <div class="status-hero-side">
+              <div class="status-counts" id="status-counts"></div>
+              <button class="button status-refresh" id="status-refresh" type="button">Neu prüfen</button>
+            </div>
+          </section>
+          <div class="status-checks" id="status-checks" aria-live="polite"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/status.js') }}"></script>
+{% endblock %}

@@ -1,4 +1,8 @@
 import secrets
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import tempfile
+import shutil
 import unittest
 from uuid import UUID, uuid4
 
@@ -20,6 +24,7 @@ from app.models import (
 )
 from app.services.authorization import principal_has_scope_permission
 from app.services.login_throttle import LoginThrottle
+from support import InMemoryArtifactStorage
 
 
 class ApiTestCase(unittest.TestCase):
@@ -694,6 +699,94 @@ class ApiTestCase(unittest.TestCase):
             listed_member["additional_roles"],
             ["pipeline_operator"],
         )
+
+    def _status_owner_headers(self):
+        with self.app.app_context():
+            scope = Scope(scope_id=uuid4(), name=f"scope-{uuid4()}")
+            db.session.add(scope)
+            db.session.flush()
+            self._add_owner_membership(scope)
+            db.session.commit()
+        return self._headers(self._login())
+
+    def _configure_status_sources(self, backup_age_hours):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root)
+        stamp = (
+            datetime.now(timezone.utc) - timedelta(hours=backup_age_hours)
+        ).strftime("%Y%m%dT%H%M%SZ")
+        backup = root / "backups" / f"greyartifact-{stamp}"
+        backup.mkdir(parents=True)
+        (backup / "SHA256SUMS").write_text("", encoding="utf-8")
+        logged_at = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M:%S%z"
+        )
+        log = root / "update.log"
+        log.write_text(
+            f"{logged_at} ipv4: addresses unchanged\n{logged_at} ipv6: addresses updated\n",
+            encoding="utf-8",
+        )
+        self.app.config.update(
+            STATUS_BACKUP_DIR=str(root / "backups"),
+            STATUS_DDNS_LOG=str(log),
+            STATUS_TLS_HOSTNAME=None,
+            STATUS_DISK_PATHS=str(root),
+        )
+        self.app.extensions["artifact_storage"] = InMemoryArtifactStorage()
+
+    def _status_checks(self, headers):
+        response = self.client.get("/api/v1/system/status", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        return {check["key"]: check for check in response.get_json()["checks"]}
+
+    def test_system_status_reports_live_checks_for_owners(self):
+        headers = self._status_owner_headers()
+        self._configure_status_sources(backup_age_hours=2)
+
+        checks = self._status_checks(headers)
+
+        self.assertEqual(
+            {key: check["state"] for key, check in checks.items() if key != "disk"},
+            {
+                "app": "ok",
+                "database": "ok",
+                "object_storage": "ok",
+                "backup": "ok",
+                "tls": "unconfigured",
+                "ddns": "ok",
+            },
+        )
+        self.assertEqual(checks["backup"]["details"]["count"], 1)
+        self.assertEqual(
+            [entry["family"] for entry in checks["ddns"]["details"]["entries"]],
+            ["ipv4", "ipv6"],
+        )
+        self.assertIn(checks["disk"]["state"], {"ok", "warning", "error"})
+        self.assertEqual(len(checks["disk"]["details"]["volumes"]), 1)
+
+    def test_system_status_warns_about_a_stale_backup(self):
+        headers = self._status_owner_headers()
+        self._configure_status_sources(backup_age_hours=30)
+
+        backup = self._status_checks(headers)["backup"]
+
+        self.assertEqual(backup["state"], "warning")
+        self.assertGreaterEqual(backup["details"]["age_hours"], 29)
+
+    def test_system_status_is_hidden_from_anonymous_and_viewers(self):
+        self.assertEqual(self.client.get("/api/v1/system/status").status_code, 401)
+        with self.app.app_context():
+            scope = Scope(scope_id=uuid4(), name=f"scope-{uuid4()}")
+            db.session.add(scope)
+            db.session.flush()
+            self._add_readable_membership(scope)
+            db.session.commit()
+
+        response = self.client.get(
+            "/api/v1/system/status", headers=self._headers(self._login())
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_member_creation_requires_membership_manage_permission(self):
         with self.app.app_context():

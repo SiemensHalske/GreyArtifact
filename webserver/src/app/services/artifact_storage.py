@@ -6,7 +6,7 @@ from tempfile import SpooledTemporaryFile
 from typing import BinaryIO, Iterator
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 from flask import current_app
 
 
@@ -82,6 +82,13 @@ class S3ArtifactStorage:
                 else:
                     raise ArtifactStorageUnavailable("Artifact upload failed.") from exc
             return StoredObject(hex_digest, key, size, created)
+
+    def check(self) -> None:
+        """Raise ArtifactStorageUnavailable unless the bucket is reachable."""
+        try:
+            self.client.head_bucket(Bucket=self.bucket)
+        except (BotoCoreError, ClientError) as exc:
+            raise ArtifactStorageUnavailable("Artifact storage is unreachable.") from exc
 
     def iter_bytes(self, storage_key: str, chunk_size: int = 64 * 1024) -> Iterator[bytes]:
         try:

@@ -141,4 +141,5 @@ export const renderAnonymousIdentity = () => {
 
 export const setAdminNavigationVisible = (visible) => {
   setHidden("#admin-nav-link", !visible);
+  setHidden("#status-nav-link", !visible);
 };

@@ -19,3 +19,8 @@ class Config:
     RUNNER_SUBFINDER_PATH = "/opt/greyartifact/bin/subfinder"
     RUNNER_DNSX_PATH = "/opt/greyartifact/bin/dnsx"
     RUNNER_HTTPX_PATH = "/opt/greyartifact/bin/httpx"
+    STATUS_BACKUP_DIR = None
+    STATUS_DDNS_LOG = None
+    STATUS_TLS_HOSTNAME = None
+    STATUS_TLS_ADDRESS = "127.0.0.1:443"
+    STATUS_DISK_PATHS = "/"

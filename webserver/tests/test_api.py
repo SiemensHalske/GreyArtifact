@@ -210,6 +210,31 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(self.client.get("/datenschutz").status_code, 404)
         self.assertIn('href="/impressum"', self.client.get("/").get_data(as_text=True))
 
+    def test_legal_markdown_subset_is_rendered(self):
+        directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, directory)
+        privacy = directory / "datenschutz.md"
+        privacy.write_text(
+            "# Datenschutzerklärung\n\n## 1. Verantwortlicher\n\nErika Muster\nMusterweg 1\n\n"
+            "Die Protokolle dienen dem sicheren und stabilen Betrieb sowie der Aufklärung\n"
+            "von Störungen und Angriffen.\n\n"
+            "- **Token** im Session Storage. Es wird\n  beim Abmelden gelöscht.\n- `/api/docs` lädt jsDelivr\n",
+            encoding="utf-8",
+        )
+        self.app.config.update(PRIVACY_FILE=str(privacy))
+
+        page = self.client.get("/datenschutz").get_data(as_text=True)
+
+        self.assertEqual(page.count("Datenschutzerklärung</h1>"), 1)
+        self.assertIn("<h2>1. Verantwortlicher</h2>", page)
+        self.assertIn("<p>Erika Muster<br>Musterweg 1</p>", page)
+        self.assertIn("der Aufklärung von Störungen und Angriffen.</p>", page)
+        self.assertIn(
+            "<li><strong>Token</strong> im Session Storage. Es wird beim Abmelden gelöscht.</li>",
+            page,
+        )
+        self.assertIn("<li><code>/api/docs</code> lädt jsDelivr</li>", page)
+
     def test_index_renders_dashboard(self):
         response = self.client.get("/dashboard")
 

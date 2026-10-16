@@ -104,6 +104,7 @@
                 <div>
                   <span class="section-kicker">Normalisierte Befunde</span>
                   <h2 id="findings-title">Findings</h2>
+                  <p class="panel-intro">Befunde aus Nuclei-Importen. Jeder Statuswechsel und jede Notiz wird mit Zeitpunkt und Person festgehalten; nichts wird überschrieben.</p>
                 </div>
                 <form class="filter-form finding-filter-form" id="finding-filter-form">
                   <input name="q" aria-label="Findings durchsuchen" placeholder="Titel, Template oder Ziel">
@@ -127,6 +128,16 @@
                   <button class="button button-quiet" type="submit">Filtern</button>
                 </form>
               </div>
+              <details class="panel-help">
+                <summary>Was bedeuten die Status?</summary>
+                <dl>
+                  <dt>Neu</dt><dd>Aus einem Import übernommen, noch nicht geprüft.</dd>
+                  <dt>Bestätigt</dt><dd>Geprüft: Der Befund trifft zu.</dd>
+                  <dt>False Positive</dt><dd>Geprüft: Der Scanner hat sich geirrt, es gibt kein Problem.</dd>
+                  <dt>Behoben</dt><dd>Der Befund traf zu und ist inzwischen beseitigt.</dd>
+                  <dt>Akzeptiert</dt><dd>Der Befund trifft zu, das Risiko wird bewusst hingenommen.</dd>
+                </dl>
+              </details>
               <div class="evidence-grid finding-grid">
                 <div class="record-list" id="finding-list"></div>
                 <div class="evidence-detail finding-detail empty-state" id="finding-detail">Finding auswählen, um Herkunft und Metadaten zu sehen.</div>
@@ -138,13 +149,27 @@
             <div class="panel">
               <div class="section-toolbar project-section-heading">
                 <div>
-                  <span class="section-kicker">recon_ml</span>
+                  <span class="section-kicker">Fennec-Läufe</span>
                   <h2 id="ml-title">ML-Priorisierung</h2>
+                  <p class="panel-intro">Das Modell sortiert die Assets eines Laufs danach, welche du zuerst ansehen solltest. Deine Bewertung fließt zurück und verbessert die nächsten Läufe.</p>
                 </div>
                 <form class="filter-form finding-status-form" id="ml-run-form">
-                  <select name="batch" id="ml-batch-select" aria-label="recon_ml-Lauf auswählen"></select>
+                  <select name="batch" id="ml-batch-select" aria-label="ML-Lauf auswählen"></select>
                 </form>
               </div>
+              <details class="panel-help">
+                <summary>Was bedeuten Rang, Modellstatus, Bewertung und Claims?</summary>
+                <dl>
+                  <dt>Rang und Perzentil</dt><dd>Reihenfolge der Sichtung innerhalb dieses Laufs: Rang 1 bzw. Perzentil 100 ist am auffälligsten. Das ist keine Wahrscheinlichkeit für einen Angriff oder eine Schwachstelle.</dd>
+                  <dt>Modellstatus</dt><dd>„Kandidat – nicht validiert“ heißt: Das Modell hat die Qualitätsprüfung noch nicht bestanden, die Rangfolge ist ein Hinweis, kein Urteil. „Validiert“ und „Freigegeben“ haben sie bestanden.</dd>
+                  <dt>Erwartbar</dt><dd>Auffällig, aber bekannt und in Ordnung.</dd>
+                  <dt>Datenartefakt</dt><dd>Messfehler oder Rauschen in den Daten, inhaltlich ohne Bedeutung.</dd>
+                  <dt>Prüfenswert</dt><dd>Sollte genauer angesehen werden.</dd>
+                  <dt>Bestätigter Befund</dt><dd>Ein echtes Sicherheitsproblem.</dd>
+                  <dt>Claims</dt><dd>Aussagen über eine Domain, etwa „öffentlich erreichbar“, mit Belegen dafür und dagegen. Vorschläge zur weiteren Erhebung werden nur angezeigt, nie selbst ausgeführt.</dd>
+                </dl>
+                <p>Eine Vorhersage wird nie automatisch zum Finding.</p>
+              </details>
               <div class="ml-claims-summary" id="ml-claims-summary" hidden></div>
               <div class="evidence-grid finding-grid">
                 <div class="record-list" id="ml-list"></div>
@@ -159,6 +184,7 @@
                 <div>
                   <span class="section-kicker">Normalisierte Sicht</span>
                   <h2 id="evidence-title">Assets &amp; Evidenz</h2>
+                  <p class="panel-intro">Alle Domains, IP-Adressen, URLs und Services aus deinen Importen, ohne Dubletten. Zu jedem Asset siehst du Eigenschaften, Beziehungen und aus welchem Import jede Angabe stammt.</p>
                 </div>
                 <form class="filter-form" id="asset-filter-form">
                   <input name="q" aria-label="Assets durchsuchen" placeholder="Domain, IP oder URL">
@@ -225,6 +251,7 @@
               <section class="panel">
                 <span class="section-kicker">Autorisierter Scope</span>
                 <h2 id="recon-title">Engagement anlegen</h2>
+                <p class="panel-intro">Ein Engagement hält fest, was du prüfen darfst: den Nachweis der Autorisierung, den Zeitraum sowie erlaubte und ausgeschlossene Domains. Recon-Runs starten nur innerhalb eines gültigen Engagements.</p>
                 <form class="compact-form project-form" id="engagement-form">
                   <label for="engagement-name">Bezeichnung</label>
                   <input id="engagement-name" name="name" maxlength="255" required>

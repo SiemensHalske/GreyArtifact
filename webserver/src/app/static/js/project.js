@@ -177,7 +177,7 @@ const loadImports = async () => {
   const payload = await apiRequest(`/api/v1/projects/${project.project_id}/imports`);
   elements.importList.replaceChildren();
   if (!payload.imports.length) {
-    empty(elements.importList, "Noch keine Reports.");
+    empty(elements.importList, "Noch keine Reports. Lade eine Datei hoch oder füge eine Liste ein.");
     return;
   }
 
@@ -423,7 +423,7 @@ const loadFindings = async () => {
   elements.findingDetail.textContent =
     "Finding auswählen, um Herkunft und Metadaten zu sehen.";
   if (!payload.findings.length) {
-    empty(elements.findingList, "Keine passenden Findings.");
+    empty(elements.findingList, "Keine passenden Findings. Findings entstehen aus Nuclei-Importen im Tab „Imports“.");
     return;
   }
   payload.findings.forEach((finding) => {
@@ -493,7 +493,7 @@ const loadAssets = async () => {
   );
   elements.assetList.replaceChildren();
   if (!payload.assets.length) {
-    empty(elements.assetList, "Keine passenden Assets.");
+    empty(elements.assetList, "Keine passenden Assets. Assets entstehen aus Importen im Tab „Imports“.");
     return;
   }
   payload.assets.forEach((asset) => {
@@ -515,7 +515,7 @@ const loadEngagements = async () => {
   const payload = await apiRequest(`/api/v1/projects/${project.project_id}/engagements`);
   elements.engagementList.replaceChildren();
   if (!payload.engagements.length) {
-    empty(elements.engagementList, "Noch kein Engagement.");
+    empty(elements.engagementList, "Noch kein Engagement. Lege eins an, bevor du einen Run startest.");
     return;
   }
   payload.engagements.forEach((item) => {
@@ -551,7 +551,7 @@ const loadRuns = async () => {
   const payload = await apiRequest(`/api/v1/projects/${project.project_id}/runs`);
   elements.runList.replaceChildren();
   if (!payload.runs.length) {
-    empty(elements.runList, "Noch keine Runs.");
+    empty(elements.runList, "Noch keine Runs. Runs starten aus einem gültigen Engagement.");
     return;
   }
   payload.runs.forEach((run) => {
@@ -791,7 +791,7 @@ const loadBatches = async () => {
     elements.mlBatchSelect.append(option);
     elements.mlBatchSelect.disabled = true;
     await loadPredictions("");
-    empty(elements.mlList, "Noch keine recon_ml-Läufe importiert.");
+    empty(elements.mlList, "Noch keine ML-Läufe. Exportiere ein Engagement in Fennec und importiere das Paket über die API (POST /api/v1/projects/…/import-batches).");
     return;
   }
   elements.mlBatchSelect.disabled = false;

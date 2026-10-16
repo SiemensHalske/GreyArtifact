@@ -303,6 +303,15 @@ For an unattended cron job, allow exactly that dump command without a password
 Do not widen the rule to arbitrary `pg_dump` arguments: `-f` would let the user
 write files as `postgres`. `backup.sh` never deletes older backups.
 
+On a host that is not always on, run `backup_if_due.sh` hourly instead of
+`backup.sh` at a fixed time. It starts `backup.sh` only when the newest
+completed backup (one with `SHA256SUMS`) is older than the given number of
+hours, so a night with the host switched off does not skip the backup:
+
+```text
+17 * * * * BACKUP_GPG_RECIPIENT=<key-id> webserver/scripts/backup_if_due.sh /srv/data/greyartifact-backups 24
+```
+
 `webserver/scripts/restore.sh <backup-directory>` verifies the checksums,
 restores into the existing, empty database named by `RESTORE_DB_NAME` (the live
 `DB_NAME` is refused) without owners or grants, and imports the objects into

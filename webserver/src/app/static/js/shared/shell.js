@@ -51,12 +51,21 @@ const applyTheme = (theme, elements, persist = true) => {
   }
 };
 
-export const initializeShell = () => {
+export const initializeThemeToggle = () => {
   const themeElements = {
     icon: document.querySelector("#theme-icon"),
     label: document.querySelector("#theme-label"),
     toggle: document.querySelector("#theme-toggle"),
   };
+  applyTheme(document.documentElement.dataset.theme || "dark", themeElements, false);
+  themeElements.toggle.addEventListener("click", () => {
+    const nextTheme =
+      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme, themeElements);
+  });
+};
+
+export const initializeShell = () => {
   const date = document.querySelector("#current-date");
   const accountMenu = document.querySelector("#account-menu");
   const accountToggle = document.querySelector("#account-menu-toggle");
@@ -68,12 +77,7 @@ export const initializeShell = () => {
   date.textContent = new Intl.DateTimeFormat("de-DE", {
     dateStyle: "long",
   }).format(new Date());
-  applyTheme(document.documentElement.dataset.theme || "dark", themeElements, false);
-  themeElements.toggle.addEventListener("click", () => {
-    const nextTheme =
-      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    applyTheme(nextTheme, themeElements);
-  });
+  initializeThemeToggle();
   accountToggle.addEventListener("click", () => {
     const open = accountPopover.classList.contains("is-hidden");
     accountPopover.classList.toggle("is-hidden", !open);
@@ -129,7 +133,7 @@ export const renderAnonymousIdentity = () => {
   document.querySelector("#session-label").textContent = "Nicht angemeldet";
   document.querySelector("#avatar").textContent = "GA";
   document.querySelector("#account-menu-name").textContent = "Nicht angemeldet";
-  document.querySelector("#account-menu-username").textContent = "Lokaler Zugang";
+  document.querySelector("#account-menu-username").textContent = "Gast";
   document
     .querySelector("#account-menu-toggle")
     .setAttribute("aria-label", "Kontomenü öffnen");

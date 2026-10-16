@@ -8,13 +8,13 @@
     {{ sidebar("dashboard") }}
 
     <main class="dashboard" id="overview">
-      {{ topbar("Lokaler Workspace") }}
+      {{ topbar("Dashboard") }}
 
       <div class="dashboard-content">
         <section class="hero" aria-labelledby="dashboard-title">
           <div>
             <span class="section-kicker">Recon-Ergebnisse im Blick</span>
-            <h1 id="dashboard-title">Dein lokales Lagebild.</h1>
+            <h1 id="dashboard-title">Dein Lagebild.</h1>
             <p>
               Verwalte bereitgestellte Ergebnisse nach Arbeitsbereich und Projekt —
               nachvollziehbar, getrennt und kontrolliert.
@@ -57,7 +57,7 @@
               <span class="metric-symbol" aria-hidden="true">↗</span>
             </div>
             <strong class="metric-value metric-word" id="api-state">Prüfung</strong>
-            <p>lokaler Anwendungsprozess</p>
+            <p>Erreichbarkeit der Anwendung</p>
           </article>
         </section>
 
@@ -69,8 +69,8 @@
                 <span class="section-kicker">Geschützter Bereich</span>
                 <h2 id="login-title">Dashboard entsperren</h2>
                 <p>
-                  Melde dich mit einem freigeschalteten lokalen Konto an oder
-                  sende eine Registrierungsanfrage an einen Workspace-Owner.
+                  Melde dich mit einem freigeschalteten Konto an oder
+                  sende eine Registrierungsanfrage an den Owner eines Arbeitsbereichs.
                 </p>
               </div>
             </div>
@@ -120,7 +120,7 @@
                 <h2 id="workspace-title">Arbeitsbereiche</h2>
               </div>
               <label class="scope-picker">
-                <span>Aktiver Scope</span>
+                <span>Aktiver Arbeitsbereich</span>
                 <select id="scope-select" aria-label="Aktiven Arbeitsbereich auswählen"></select>
               </label>
             </div>
@@ -176,11 +176,11 @@
               </li>
               <li>
                 <span class="status-check" aria-hidden="true">✓</span>
-                <div><strong>Scope-Isolation</strong><small>Serverseitig autorisiert</small></div>
+                <div><strong>Getrennte Arbeitsbereiche</strong><small>Serverseitig autorisiert</small></div>
               </li>
               <li>
                 <span class="status-check" aria-hidden="true">✓</span>
-                <div><strong>Lokale Identität</strong><small>Kurzlebiges Access-JWT</small></div>
+                <div><strong>Kurzlebige Sitzungen</strong><small>Access-JWT mit Widerruf</small></div>
               </li>
             </ul>
             <div class="endpoint-note">
@@ -190,8 +190,8 @@
         </div>
 
         <footer class="dashboard-footer">
-          <span>GreyArtifact / local recon archive</span>
-          <span>Manueller Import · nachvollziehbare Evidenz</span>
+          <span>GreyArtifact · Recon Vault</span>
+          <span>Import · Priorisierung · nachvollziehbare Evidenz</span>
         </footer>
       </div>
     </main>

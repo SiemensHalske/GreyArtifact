@@ -126,7 +126,7 @@ const renderMembers = (members) => {
 
   if (members.length === 0) {
     elements.memberList.append(
-      emptyState("Keine Mitglieder", "Dieser Scope hat noch keine Mitgliedschaften."),
+      emptyState("Keine Mitglieder", "Dieser Arbeitsbereich hat noch keine Mitgliedschaften."),
     );
     return;
   }
@@ -229,7 +229,7 @@ const renderAudit = (payload, append = false) => {
 
   if (!append && payload.events.length === 0) {
     elements.auditList.append(
-      emptyState("Keine Änderungen", "Für diesen Scope gibt es noch keine Rollenereignisse."),
+      emptyState("Keine Änderungen", "Für diesen Arbeitsbereich gibt es noch keine Rollenereignisse."),
     );
   }
 
@@ -327,7 +327,7 @@ const loadScope = async (scopeId) => {
   state.activeScopeId = scopeId;
   state.auditPage = 1;
   const activeScope = state.scopes.find((scope) => scope.scope_id === scopeId);
-  elements.activeScopeName.textContent = activeScope?.name || "Unbekannter Scope";
+  elements.activeScopeName.textContent = activeScope?.name || "Unbekannter Arbeitsbereich";
   elements.pendingCount.textContent = "…";
   elements.memberCount.textContent = "…";
   elements.auditLoadMore.classList.add("is-hidden");
@@ -364,7 +364,7 @@ const renderScopes = () => {
   elements.managedScopeCount.textContent = String(state.scopes.length);
   if (state.scopes.length === 0) {
     const option = document.createElement("option");
-    option.textContent = "Keine verwaltbaren Scopes";
+    option.textContent = "Keine verwaltbaren Arbeitsbereiche";
     option.disabled = true;
     option.selected = true;
     elements.scopeSelect.append(option);
@@ -374,7 +374,7 @@ const renderScopes = () => {
     elements.registrationList.replaceChildren(
       emptyState(
         "Kein Verwaltungszugriff",
-        "Für dieses Konto ist membership.manage in keinem Scope hinterlegt.",
+        "Für dieses Konto ist membership.manage in keinem Arbeitsbereich hinterlegt.",
       ),
     );
     elements.memberList.replaceChildren();
@@ -575,7 +575,7 @@ const handleMemberRoleAction = async (event) => {
     }
     message.textContent =
       error.status === 409
-        ? "Der letzte Owner eines Scopes kann nicht herabgestuft werden."
+        ? "Der letzte Owner eines Arbeitsbereichs kann nicht herabgestuft werden."
         : "Die Rollen konnten nicht aktualisiert werden.";
     editor.querySelectorAll("button, select, input").forEach((control) => {
       control.disabled = false;

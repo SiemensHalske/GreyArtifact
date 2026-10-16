@@ -318,6 +318,15 @@ RESTORE_DB_NAME=recon_restore webserver/scripts/restore.sh <backup-directory>
 Backups contain unredacted raw artifacts. Store them and the decryption key
 separately from the server.
 
+### Public pages
+
+`/` is a public landing page; the dashboard lives at `/dashboard`. `/impressum`
+and `/datenschutz` render the plain-text files named by `IMPRINT_FILE` and
+`PRIVACY_FILE`. Keep those files outside the repository, since an imprint
+contains the operator's postal address. Without a file the routes answer 404
+and the footer and sidebar links are hidden; the text is escaped and line
+breaks are kept.
+
 ### System status
 
 `/status` shows live checks from `GET /api/v1/system/status` to principals with

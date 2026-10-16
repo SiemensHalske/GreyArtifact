@@ -177,11 +177,44 @@ class ApiTestCase(unittest.TestCase):
         for response in responses:
             self.assertEqual(response.status_code, 401)
 
-    def test_index_renders_dashboard(self):
+    def test_landing_page_is_public_and_links_to_login(self):
+        self.app.config.update(IMPRINT_FILE=None, PRIVACY_FILE=None)
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Dein lokales Lagebild", response.data)
+        page = response.get_data(as_text=True)
+        self.assertIn("Aus Recon-Rohdaten wird nachvollziehbare Evidenz.", page)
+        self.assertIn('href="/login"', page)
+        self.assertIn('href="/register"', page)
+        self.assertIn("js/landing.js", page)
+        self.assertNotIn('id="login-form"', page)
+        self.assertNotIn("Impressum", page)
+
+    def test_legal_pages_render_configured_text_escaped(self):
+        self.app.config.update(IMPRINT_FILE=None, PRIVACY_FILE=None)
+        self.assertEqual(self.client.get("/impressum").status_code, 404)
+        self.assertEqual(self.client.get("/datenschutz").status_code, 404)
+
+        directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, directory)
+        imprint = directory / "impressum.txt"
+        imprint.write_text("Erika Muster\n<script>alert(1)</script>", encoding="utf-8")
+        self.app.config.update(
+            IMPRINT_FILE=str(imprint), PRIVACY_FILE=str(directory / "missing.txt")
+        )
+
+        page = self.client.get("/impressum").get_data(as_text=True)
+        self.assertIn("Erika Muster", page)
+        self.assertIn("&lt;script&gt;", page)
+        self.assertNotIn("<script>alert", page)
+        self.assertEqual(self.client.get("/datenschutz").status_code, 404)
+        self.assertIn('href="/impressum"', self.client.get("/").get_data(as_text=True))
+
+    def test_index_renders_dashboard(self):
+        response = self.client.get("/dashboard")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Dein Lagebild", response.data)
         self.assertIn(b'id="login-form"', response.data)
         self.assertIn(b'data-theme="dark"', response.data)
         self.assertIn(b'id="theme-toggle"', response.data)

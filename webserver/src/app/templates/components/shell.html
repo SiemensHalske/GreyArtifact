@@ -1,6 +1,6 @@
 {% macro sidebar(active) %}
   <aside class="sidebar" id="main-navigation" aria-label="Hauptnavigation">
-    <a class="brand" href="{{ url_for('main.index') }}" aria-label="GreyArtifact Startseite">
+    <a class="brand" href="{{ url_for('main.landing') }}" aria-label="GreyArtifact Startseite">
       <span class="brand-mark" aria-hidden="true">
         <span></span><span></span><span></span>
       </span>
@@ -58,10 +58,16 @@
     <div class="guardrail-card">
       <span class="guardrail-icon" aria-hidden="true">◎</span>
       <div>
-        <strong>Controlled recon</strong>
+        <strong>Kontrollierter Recon</strong>
         <p>Imports und Recon-Läufe bleiben projektgebunden und nachvollziehbar.</p>
       </div>
     </div>
+    {% if legal_pages().imprint or legal_pages().privacy %}
+      <nav class="sidebar-legal" aria-label="Rechtliches">
+        {% if legal_pages().imprint %}<a href="{{ url_for('main.imprint') }}">Impressum</a>{% endif %}
+        {% if legal_pages().privacy %}<a href="{{ url_for('main.privacy') }}">Datenschutz</a>{% endif %}
+      </nav>
+    {% endif %}
   </aside>
 {% endmacro %}
 
@@ -80,7 +86,7 @@
     </button>
     <a
       class="mobile-brand"
-      href="{{ url_for('main.index') }}"
+      href="{{ url_for('main.landing') }}"
       aria-label="GreyArtifact Startseite"
     >
       <span class="brand-mark" aria-hidden="true">

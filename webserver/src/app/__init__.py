@@ -99,6 +99,8 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         STATUS_TLS_HOSTNAME=os.environ.get("STATUS_TLS_HOSTNAME") or None,
         STATUS_TLS_ADDRESS=os.environ.get("STATUS_TLS_ADDRESS") or "127.0.0.1:443",
         STATUS_DISK_PATHS=os.environ.get("STATUS_DISK_PATHS") or "/",
+        IMPRINT_FILE=os.environ.get("IMPRINT_FILE") or None,
+        PRIVACY_FILE=os.environ.get("PRIVACY_FILE") or None,
     )
     if os.environ.get("MAX_ARTIFACT_BYTES"):
         try:

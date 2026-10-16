@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ heading }} · GreyArtifact{% endblock %}
+
+{% block body %}
+  <div class="landing legal-page">
+    <header class="landing-header">
+      <a class="brand landing-brand" href="{{ url_for('main.landing') }}" aria-label="GreyArtifact Startseite">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>
+          <strong>GreyArtifact</strong>
+          <small>Recon Vault</small>
+        </span>
+      </a>
+    </header>
+    <main class="legal-content">
+      <h1>{{ heading }}</h1>
+      <div class="legal-text">{{ body }}</div>
+      <a class="landing-text-link" href="{{ url_for('main.landing') }}">← Zur Startseite</a>
+    </main>
+  </div>
+{% endblock %}

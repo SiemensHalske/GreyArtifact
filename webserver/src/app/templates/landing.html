@@ -169,6 +169,7 @@
     <footer class="landing-footer">
       <span>GreyArtifact · Recon Vault</span>
       <nav aria-label="Rechtliches und Ressourcen">
+        <a href="{{ url_for('main.help') }}">Hilfe</a>
         <a href="{{ url_for('main.api_docs') }}">API-Dokumentation</a>
         <a href="{{ github_url }}" rel="noopener">GitHub</a>
         {% if legal_pages().imprint %}<a href="{{ url_for('main.imprint') }}">Impressum</a>{% endif %}

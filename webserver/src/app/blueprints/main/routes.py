@@ -151,6 +151,12 @@ def status():
     return render_template("status.html")
 
 
+# Named explicitly so the view function does not shadow the help() builtin.
+@bp.get("/hilfe", endpoint="help")
+def help_page():
+    return render_template("help.html")
+
+
 @bp.get("/login")
 def login():
     return render_template("login.html")

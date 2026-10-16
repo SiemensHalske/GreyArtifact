@@ -327,6 +327,8 @@ contains the operator's postal address. Without a file the routes answer 404
 and the footer and sidebar links are hidden. The files may use a small
 Markdown subset (`##`/`###` headings, paragraphs with kept line breaks, `- `
 lists, `**bold**`, `` `code` ``); every line is escaped before markup is added.
+`/hilfe` is a static help page with a German glossary of the main terms, linked
+from the sidebar and the landing page footer.
 
 ### System status
 

@@ -284,9 +284,9 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         self.assertIn("Hilfe &amp; Begriffe", page)
-        self.assertIn("<dt>Arbeitsbereich</dt>", page)
-        self.assertIn("<dt>Engagement</dt>", page)
-        self.assertIn("<dt>Claim</dt>", page)
+        self.assertIn('id="help-search"', page)
+        for term_id in ("arbeitsbereich", "engagement", "claim", "ml-vorhersage"):
+            self.assertIn(f'<article class="help-term" id="{term_id}">', page)
         self.assertIn('href="/api/docs"', page)
         self.assertIn("js/help.js", page)
         self.assertIn('href="/hilfe"', self.client.get("/dashboard").get_data(as_text=True))

@@ -3,6 +3,17 @@
 
 {% block title %}Hilfe · GreyArtifact{% endblock %}
 
+{% macro term(id, title, badge) %}
+  <article class="help-term" id="{{ id }}">
+    <div class="help-term-heading">
+      <span class="help-term-badge" aria-hidden="true">{{ badge }}</span>
+      <h3>{{ title }}</h3>
+      <a class="help-term-anchor" href="#{{ id }}" aria-label="Link zu „{{ title }}“">#</a>
+    </div>
+    <p>{{ caller() }}</p>
+  </article>
+{% endmacro %}
+
 {% block body %}
   <div class="app-shell">
     {{ sidebar("help") }}
@@ -10,92 +21,99 @@
     <main class="dashboard">
       {{ topbar("Hilfe") }}
 
-      <div class="dashboard-content profile-page help-page">
-        <section class="profile-hero" aria-labelledby="help-title">
+      <div class="dashboard-content help-page">
+        <section class="help-hero" aria-labelledby="help-title">
           <div>
             <span class="section-kicker">Orientierung</span>
             <h1 id="help-title">Hilfe &amp; Begriffe</h1>
             <p>Die wichtigsten Begriffe in GreyArtifact und wie sie zusammenhängen.</p>
           </div>
-          <a class="button project-back-link" href="{{ url_for('main.index') }}">
-            <span aria-hidden="true">←</span> Zum Dashboard
-          </a>
+          <div class="help-search">
+            <label class="help-search-label" for="help-search">Begriff suchen</label>
+            <input id="help-search" type="search" placeholder="z. B. Claim, Rolle, Perzentil" autocomplete="off">
+            <small id="help-count" role="status"></small>
+          </div>
         </section>
 
-        <section class="panel" aria-labelledby="help-structure-title">
+        <section class="help-flow-panel" aria-labelledby="help-structure-title">
           <span class="section-kicker">Überblick</span>
           <h2 id="help-structure-title">So hängt alles zusammen</h2>
-          <ol class="help-steps">
-            <li>Ein <strong>Arbeitsbereich</strong> legt fest, wer Zugriff hat und mit welcher Rolle.</li>
-            <li>Darin liegen <strong>Projekte</strong>, zum Beispiel eines pro Kunde.</li>
-            <li>In ein Projekt werden <strong>Importe</strong> hochgeladen.</li>
-            <li>Aus den Importen entstehen <strong>Assets</strong> und <strong>Findings</strong>.</li>
-            <li>Ergebnisse werden gesichtet und mit einer <strong>Bewertung</strong> versehen.</li>
+          <ol class="help-flow">
+            <li><span class="help-flow-badge">AB</span><a href="#arbeitsbereich"><strong>Arbeitsbereich</strong></a><small>Wer Zugriff hat und mit welcher Rolle</small></li>
+            <li><span class="help-flow-badge">PR</span><a href="#projekt"><strong>Projekt</strong></a><small>Ein Vorhaben, zum Beispiel ein Kunde</small></li>
+            <li><span class="help-flow-badge">IM</span><a href="#import"><strong>Import</strong></a><small>Rohdatei, unverändert gespeichert</small></li>
+            <li><span class="help-flow-badge">AS</span><a href="#asset"><strong>Assets &amp; Findings</strong></a><small>Abgeleitet, mit Herkunft</small></li>
+            <li><span class="help-flow-badge">BW</span><a href="#bewertung"><strong>Bewertung</strong></a><small>Status, Notizen, ML-Feedback</small></li>
           </ol>
-          <p class="panel-intro help-note">Recon-Runs sind nur über ein gültiges Engagement möglich.</p>
-        </section>
-
-        <section class="panel" aria-labelledby="help-glossary-title">
-          <span class="section-kicker">Glossar</span>
-          <h2 id="help-glossary-title">Begriffe</h2>
-          <dl class="help-glossary">
-            <dt>Arbeitsbereich</dt>
-            <dd>Oberste Ebene für Zugriff und Rollen. Mitglieder sehen nur die Arbeitsbereiche, in denen sie eine Rolle haben.</dd>
-
-            <dt>Rollen</dt>
-            <dd>Viewer liest Daten; Researcher importiert und löscht zusätzlich; Analyst verwaltet zusätzlich Projekte; Owner verwaltet außerdem Mitglieder, Rollen und den Arbeitsbereich. Der letzte Owner kann nicht herabgestuft werden.</dd>
-
-            <dt>Projekt</dt>
-            <dd>Sammelt Importe, Assets, Findings und Recon-Läufe zu einem Vorhaben, zum Beispiel einem Kunden.</dd>
-
-            <dt>Import / Rohartefakt</dt>
-            <dd>Eine hochgeladene Datei bleibt unverändert gespeichert und wird über ihren SHA-256-Hash eindeutig identifiziert. Daraus werden Assets und Findings abgeleitet.</dd>
-
-            <dt>Asset</dt>
-            <dd>Ein normalisiertes Ziel: Domain, IPv4- oder IPv6-Adresse, URL oder Service. Gleiche Werte werden zusammengeführt.</dd>
-
-            <dt>Evidenz / Herkunft</dt>
-            <dd>Zu jeder Eigenschaft, jeder Beziehung und jedem Finding ist gespeichert, aus welchem Rohartefakt es stammt.</dd>
-
-            <dt>Finding</dt>
-            <dd>Ein Befund, derzeit aus Nuclei-Importen, mit Schweregrad und Status (Neu, Bestätigt, False Positive, Behoben, Akzeptiert). Statuswechsel und Notizen werden nur angehängt, nie überschrieben.</dd>
-
-            <dt>Sensible Rohartefakte</dt>
-            <dd>Rohdateien, die Geheimnisse enthalten können; ihr Download erfordert eine eigene Berechtigung.</dd>
-
-            <dt>Engagement</dt>
-            <dd>Hält fest, was geprüft werden darf: Nachweis der Autorisierung, Zeitraum, erlaubte und ausgeschlossene Domains.</dd>
-
-            <dt>Recon-Run</dt>
-            <dd>Ein kontrollierter Lauf des festen Profils <code>domain_basic_v1</code> innerhalb eines gültigen Engagements, ausgeführt in einem vom Webserver getrennten Runner.</dd>
-
-            <dt>Fennec-Lauf (Import-Batch)</dt>
-            <dd>Ein Paket aus der Fennec-Pipeline mit Manifest, Vorhersagen, Beobachtungen und optional Claims; jede Datei wird per SHA-256 geprüft.</dd>
-
-            <dt>ML-Vorhersage, Rang und Perzentil</dt>
-            <dd>Die Reihenfolge, in der Assets eines Laufs gesichtet werden sollten. Keine Wahrscheinlichkeit für einen Angriff oder eine Schwachstelle.</dd>
-
-            <dt>Modellstatus</dt>
-            <dd>Kandidat (nicht validiert), Validiert, Freigegeben oder Ausgemustert.</dd>
-
-            <dt>Bewertung</dt>
-            <dd>Erwartbar, Datenartefakt, Prüfenswert oder Bestätigter Befund. Bewertungen werden an Fennec zurückgespielt.</dd>
-
-            <dt>Claim</dt>
-            <dd>Eine Aussage über eine Domain (z. B. öffentlich erreichbar) mit Belegen dafür und dagegen; Zustände: gestützt, widerlegt, unbekannt, zu wenig Belege. Vorschläge zur weiteren Erhebung werden nur angezeigt, nie ausgeführt.</dd>
-
-            <dt>Systemstatus</dt>
-            <dd>Live-Prüfung von Anwendung, Datenbank, Speicher, Backup, Zertifikat, DynDNS und Plattenplatz; nur für Owner und Admins.</dd>
-          </dl>
-        </section>
-
-        <section class="panel" aria-labelledby="help-more-title">
-          <span class="section-kicker">Weitere Hilfe</span>
-          <h2 id="help-more-title">Für Integrationen</h2>
-          <p class="panel-intro">
-            Alle Endpunkte der Programmierschnittstelle sind in der
-            <a class="help-link" href="{{ url_for('main.api_docs') }}">API-Dokumentation</a> beschrieben.
+          <p class="help-flow-note">
+            <span class="help-flow-badge">EN</span>
+            <span><a href="#recon-run"><strong>Recon-Runs</strong></a> starten nur innerhalb eines gültigen <a href="#engagement">Engagements</a> mit Autorisierung, Zeitraum und Scope.</span>
           </p>
+        </section>
+
+        <div class="help-glossary" aria-label="Glossar">
+          <section class="help-group" aria-labelledby="help-group-access">
+            <h2 id="help-group-access">Zugriff</h2>
+            <div class="help-terms">
+              {% call term("arbeitsbereich", "Arbeitsbereich", "AB") %}Oberste Ebene für Zugriff und Rollen. Mitglieder sehen nur die Arbeitsbereiche, in denen sie eine Rolle haben.{% endcall %}
+              {% call term("rollen", "Rollen", "RO") %}Viewer liest Daten; Researcher importiert und löscht zusätzlich; Analyst verwaltet zusätzlich Projekte; Owner verwaltet außerdem Mitglieder, Rollen und den Arbeitsbereich. Der letzte Owner kann nicht herabgestuft werden.{% endcall %}
+            </div>
+          </section>
+
+          <section class="help-group" aria-labelledby="help-group-data">
+            <h2 id="help-group-data">Daten &amp; Evidenz</h2>
+            <div class="help-terms">
+              {% call term("projekt", "Projekt", "PR") %}Sammelt Importe, Assets, Findings und Recon-Läufe zu einem Vorhaben, zum Beispiel einem Kunden.{% endcall %}
+              {% call term("import", "Import / Rohartefakt", "IM") %}Eine hochgeladene Datei bleibt unverändert gespeichert und wird über ihren SHA-256-Hash eindeutig identifiziert. Daraus werden Assets und Findings abgeleitet.{% endcall %}
+              {% call term("asset", "Asset", "AS") %}Ein normalisiertes Ziel: Domain, IPv4- oder IPv6-Adresse, URL oder Service. Gleiche Werte werden zusammengeführt.{% endcall %}
+              {% call term("evidenz", "Evidenz / Herkunft", "EV") %}Zu jeder Eigenschaft, jeder Beziehung und jedem Finding ist gespeichert, aus welchem Rohartefakt es stammt.{% endcall %}
+              {% call term("sensible-rohartefakte", "Sensible Rohartefakte", "SR") %}Rohdateien, die Geheimnisse enthalten können; ihr Download erfordert eine eigene Berechtigung.{% endcall %}
+            </div>
+          </section>
+
+          <section class="help-group" aria-labelledby="help-group-findings">
+            <h2 id="help-group-findings">Findings</h2>
+            <div class="help-terms">
+              {% call term("finding", "Finding", "FI") %}Ein Befund, derzeit aus Nuclei-Importen, mit Schweregrad und Status (Neu, Bestätigt, False Positive, Behoben, Akzeptiert). Statuswechsel und Notizen werden nur angehängt, nie überschrieben.{% endcall %}
+            </div>
+          </section>
+
+          <section class="help-group" aria-labelledby="help-group-recon">
+            <h2 id="help-group-recon">Recon</h2>
+            <div class="help-terms">
+              {% call term("engagement", "Engagement", "EN") %}Hält fest, was geprüft werden darf: Nachweis der Autorisierung, Zeitraum, erlaubte und ausgeschlossene Domains.{% endcall %}
+              {% call term("recon-run", "Recon-Run", "RR") %}Ein kontrollierter Lauf des festen Profils domain_basic_v1 innerhalb eines gültigen Engagements, ausgeführt in einem vom Webserver getrennten Runner.{% endcall %}
+            </div>
+          </section>
+
+          <section class="help-group" aria-labelledby="help-group-ml">
+            <h2 id="help-group-ml">ML &amp; Fennec</h2>
+            <div class="help-terms">
+              {% call term("fennec-lauf", "Fennec-Lauf (Import-Batch)", "FL") %}Ein Paket aus der Fennec-Pipeline mit Manifest, Vorhersagen, Beobachtungen und optional Claims; jede Datei wird per SHA-256 geprüft.{% endcall %}
+              {% call term("ml-vorhersage", "Rang und Perzentil", "RP") %}Die Reihenfolge, in der Assets eines Laufs gesichtet werden sollten: Rang 1 bzw. Perzentil 100 ist am auffälligsten. Keine Wahrscheinlichkeit für einen Angriff oder eine Schwachstelle.{% endcall %}
+              {% call term("modellstatus", "Modellstatus", "MS") %}Kandidat (nicht validiert), Validiert, Freigegeben oder Ausgemustert. Nur validierte und freigegebene Modelle haben die Qualitätsprüfung bestanden.{% endcall %}
+              {% call term("bewertung", "Bewertung", "BW") %}Erwartbar, Datenartefakt, Prüfenswert oder Bestätigter Befund. Bewertungen werden an Fennec zurückgespielt; eine Vorhersage wird nie automatisch zum Finding.{% endcall %}
+              {% call term("claim", "Claim", "CL") %}Eine Aussage über eine Domain, etwa „öffentlich erreichbar“, mit Belegen dafür und dagegen; Zustände: gestützt, widerlegt, unbekannt, zu wenig Belege. Vorschläge zur weiteren Erhebung werden nur angezeigt, nie ausgeführt.{% endcall %}
+            </div>
+          </section>
+
+          <section class="help-group" aria-labelledby="help-group-ops">
+            <h2 id="help-group-ops">Betrieb</h2>
+            <div class="help-terms">
+              {% call term("systemstatus", "Systemstatus", "ST") %}Live-Prüfung von Anwendung, Datenbank, Speicher, Backup, Zertifikat, DynDNS und Plattenplatz; nur für Owner und Admins.{% endcall %}
+            </div>
+          </section>
+
+          <p class="help-empty" id="help-empty" hidden>Kein passender Begriff. Versuch es mit einem anderen Stichwort.</p>
+        </div>
+
+        <section class="help-more" aria-labelledby="help-more-title">
+          <div>
+            <span class="section-kicker">Weitere Hilfe</span>
+            <h2 id="help-more-title">Für Integrationen</h2>
+            <p>Alle Endpunkte der Programmierschnittstelle sind in der API-Dokumentation beschrieben.</p>
+          </div>
+          <a class="button help-more-button" href="{{ url_for('main.api_docs') }}">API-Dokumentation</a>
         </section>
 
         <footer class="dashboard-footer">

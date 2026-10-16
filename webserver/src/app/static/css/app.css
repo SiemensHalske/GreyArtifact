@@ -2825,3 +2825,54 @@ html[data-theme="light"] .status-app {
     margin-bottom: 6px;
   }
 }
+
+/* Help page */
+.help-page > .panel {
+  margin-top: 14px;
+}
+
+.help-page > .profile-hero {
+  margin-bottom: 34px;
+}
+
+.help-steps {
+  margin: 14px 0 12px;
+  padding-left: 22px;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.help-glossary {
+  display: grid;
+  /* Long terms wrap instead of pushing every definition to the middle. */
+  grid-template-columns: minmax(9rem, 14rem) minmax(0, 1fr);
+  gap: 12px 24px;
+  margin: 18px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.help-glossary dt {
+  font-weight: 750;
+}
+
+.help-glossary dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.help-link {
+  color: var(--accent-readable);
+  font-weight: 750;
+}
+
+@media (max-width: 560px) {
+  .help-glossary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .help-glossary dd {
+    margin-bottom: 10px;
+  }
+}

@@ -278,6 +278,19 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn(b'id="password-form"', response.data)
         self.assertIn(b"js/profile.js", response.data)
 
+    def test_help_page_is_public_and_linked_from_sidebar(self):
+        response = self.client.get("/hilfe")
+
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn("Hilfe &amp; Begriffe", page)
+        self.assertIn("<dt>Arbeitsbereich</dt>", page)
+        self.assertIn("<dt>Engagement</dt>", page)
+        self.assertIn("<dt>Claim</dt>", page)
+        self.assertIn('href="/api/docs"', page)
+        self.assertIn("js/help.js", page)
+        self.assertIn('href="/hilfe"', self.client.get("/dashboard").get_data(as_text=True))
+
     def test_login_page_renders_standalone_form(self):
         response = self.client.get("/login")
 

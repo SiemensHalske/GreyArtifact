@@ -45,6 +45,14 @@
         Registrierung
       </a>
       <a
+        class="nav-link{% if active == 'help' %} is-active{% endif %}"
+        href="{{ url_for('main.help') }}"
+        {% if active == 'help' %}aria-current="page"{% endif %}
+      >
+        <span class="nav-icon" aria-hidden="true">?</span>
+        Hilfe
+      </a>
+      <a
         class="nav-link is-hidden{% if active == 'status' %} is-active{% endif %}"
         id="status-nav-link"
         href="{{ url_for('main.status') }}"

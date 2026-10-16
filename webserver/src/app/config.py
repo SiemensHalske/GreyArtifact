@@ -24,3 +24,5 @@ class Config:
     STATUS_TLS_HOSTNAME = None
     STATUS_TLS_ADDRESS = "127.0.0.1:443"
     STATUS_DISK_PATHS = "/"
+    IMPRINT_FILE = None
+    PRIVACY_FILE = None

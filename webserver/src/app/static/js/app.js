@@ -119,7 +119,7 @@ const renderScopes = () => {
   elements.scopeCount.textContent = String(state.scopes.length);
   if (state.scopes.length === 0) {
     const option = document.createElement("option");
-    option.textContent = "Keine sichtbaren Scopes";
+    option.textContent = "Keine sichtbaren Arbeitsbereiche";
     option.disabled = true;
     option.selected = true;
     elements.scopeSelect.append(option);

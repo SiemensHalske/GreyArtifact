@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}GreyArtifact · Recon Vault{% endblock %}
+
+{% block body %}
+  <div class="landing">
+    <header class="landing-header">
+      <a class="brand landing-brand" href="{{ url_for('main.landing') }}" aria-label="GreyArtifact Startseite">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>
+          <strong>GreyArtifact</strong>
+          <small>Recon Vault</small>
+        </span>
+      </a>
+      <nav class="landing-nav" aria-label="Seitenbereiche">
+        <a href="#funktionen">Funktionen</a>
+        <a href="#ablauf">Ablauf</a>
+        <a href="#sicherheit">Sicherheit</a>
+      </nav>
+      <div class="landing-header-actions">
+        <button
+          class="theme-toggle"
+          id="theme-toggle"
+          type="button"
+          aria-label="Helles Farbschema aktivieren"
+          aria-pressed="true"
+        >
+          <span class="theme-icon" id="theme-icon" aria-hidden="true">☀</span>
+          <span id="theme-label">Hell</span>
+        </button>
+        <a class="button button-primary landing-session-link" id="landing-session-link" href="{{ url_for('main.login') }}">Anmelden</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="landing-hero" aria-labelledby="landing-title">
+        <div class="landing-hero-copy">
+          <span class="section-kicker">Recon Vault · selbst gehostet</span>
+          <h1 id="landing-title">Aus Recon-Rohdaten wird nachvollziehbare Evidenz.</h1>
+          <p class="landing-lead">
+            GreyArtifact sammelt die Ergebnisse deiner Recon-Werkzeuge, macht daraus Assets
+            und Findings und hält jede Aussage bis zum unveränderten Rohartefakt
+            zurückverfolgbar – auf deiner eigenen Infrastruktur.
+          </p>
+          <div class="landing-actions">
+            <a class="button button-primary" id="landing-primary-link" href="{{ url_for('main.login') }}">Anmelden</a>
+            <a class="button landing-secondary" href="{{ url_for('main.register') }}">Zugang anfragen</a>
+            <a class="landing-text-link" href="{{ github_url }}" rel="noopener">Quellcode auf GitHub ↗</a>
+          </div>
+          <p class="landing-note">Frühe Entwicklungsphase · Zugang nur nach Freischaltung.</p>
+        </div>
+
+        <figure class="landing-chain" aria-label="Beispiel einer Evidenzkette">
+          <div class="landing-chain-step">
+            <span class="landing-chain-label">Rohartefakt</span>
+            <code>httpx.jsonl · sha256:9f3c…a71e</code>
+            <small>unverändert gespeichert</small>
+          </div>
+          <span class="landing-chain-link" aria-hidden="true"></span>
+          <div class="landing-chain-step">
+            <span class="landing-chain-label">Asset</span>
+            <code>admin.example.test</code>
+            <small>HTTP 200 · TLS gültig · löst auf 203.0.113.10</small>
+          </div>
+          <span class="landing-chain-link" aria-hidden="true"></span>
+          <div class="landing-chain-step landing-chain-finding">
+            <span class="landing-chain-label">Finding</span>
+            <strong>Admin-Oberfläche öffentlich erreichbar</strong>
+            <small>Status: bestätigt · 2 Notizen · Verlauf vollständig</small>
+          </div>
+          <figcaption>Jede Aussage verweist auf ihre Quelle.</figcaption>
+        </figure>
+      </section>
+
+      <section class="landing-section" id="funktionen" aria-labelledby="features-title">
+        <span class="section-kicker">Funktionen</span>
+        <h2 id="features-title">Was GreyArtifact dir abnimmt</h2>
+        <div class="landing-features">
+          <article class="landing-feature">
+            <span class="landing-feature-badge" aria-hidden="true">EV</span>
+            <h3>Nachvollziehbare Evidenz</h3>
+            <p>
+              Jedes Asset, jede Eigenschaft und jedes Finding verweist auf das Rohartefakt,
+              aus dem es stammt. Rohartefakte werden per SHA-256 adressiert und nie verändert.
+            </p>
+          </article>
+          <article class="landing-feature">
+            <span class="landing-feature-badge" aria-hidden="true">SH</span>
+            <h3>Deine Daten bleiben bei dir</h3>
+            <p>
+              Selbst gehostet mit PostgreSQL und S3-kompatiblem Objektspeicher.
+              Recon-Ergebnisse deiner Kunden verlassen deine Infrastruktur nicht.
+            </p>
+          </article>
+          <article class="landing-feature">
+            <span class="landing-feature-badge" aria-hidden="true">ML</span>
+            <h3>Priorisierung mit Erklärung</h3>
+            <p>
+              Läufe aus Fennec kommen mit Rangliste und Begründung; deine Bewertungen fließen
+              zurück ins Modell. Eine Vorhersage wird nie automatisch zum Finding.
+            </p>
+          </article>
+          <article class="landing-feature">
+            <span class="landing-feature-badge" aria-hidden="true">RC</span>
+            <h3>Kontrollierte Recon-Läufe</h3>
+            <p>
+              Läufe starten nur aus einem autorisierten Engagement mit Scope und Ausschlüssen,
+              in einem vom Webserver getrennten Runner. Empfehlungen werden nie selbst ausgeführt.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="landing-section" id="ablauf" aria-labelledby="flow-title">
+        <span class="section-kicker">Ablauf</span>
+        <h2 id="flow-title">In drei Schritten zum Lagebild</h2>
+        <ol class="landing-steps">
+          <li>
+            <span class="landing-step-number">01</span>
+            <h3>Importieren</h3>
+            <p>
+              Ergebnisse von Subfinder, DNSx, HTTPx und Nuclei hochladen oder komplette
+              Fennec-Pakete mit SHA-256-geprüftem Manifest übernehmen.
+            </p>
+          </li>
+          <li>
+            <span class="landing-step-number">02</span>
+            <h3>Sichten und priorisieren</h3>
+            <p>
+              Assets mit Eigenschaften und Beziehungen, Findings mit Status-Audit und Notizen,
+              dazu die ML-Rangliste mit Claims und offenen Fragen.
+            </p>
+          </li>
+          <li>
+            <span class="landing-step-number">03</span>
+            <h3>Belegen</h3>
+            <p>
+              Jedes Ergebnis bleibt bis zur Quelle abrufbar – sensible Rohartefakte nur
+              mit eigener Berechtigung.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="landing-section" id="sicherheit" aria-labelledby="security-title">
+        <span class="section-kicker">Sicherheit</span>
+        <h2 id="security-title">Gebaut für sensible Daten</h2>
+        <ul class="landing-principles">
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Rechte pro Arbeitsbereich</strong><small>Jede Anfrage wird serverseitig geprüft; Fremdes bleibt unsichtbar.</small></div></li>
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Kurzlebige Tokens</strong><small>Eine Passwortänderung macht alle älteren Sitzungen ungültig.</small></div></li>
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Schutz vor Rateversuchen</strong><small>Fehlgeschlagene Anmeldungen werden gedrosselt.</small></div></li>
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Strikte Content Security Policy</strong><small>Kein Inline-Code, keine fremden Skripte.</small></div></li>
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Lückenloser Verlauf</strong><small>Statuswechsel, Notizen und Bewertungen werden nur angehängt.</small></div></li>
+          <li><span class="status-check" aria-hidden="true">✓</span><div><strong>Verschlüsselte Backups</strong><small>Datenbank und Artefakte, jedes Objekt per SHA-256 geprüft.</small></div></li>
+        </ul>
+      </section>
+
+      <section class="landing-cta" aria-labelledby="cta-title">
+        <div>
+          <h2 id="cta-title">Interesse an einem Zugang?</h2>
+          <p>Stell eine Anfrage – ein Owner prüft und schaltet dein Konto frei.</p>
+        </div>
+        <a class="button landing-cta-button" href="{{ url_for('main.register') }}">Zugang anfragen</a>
+      </section>
+    </main>
+
+    <footer class="landing-footer">
+      <span>GreyArtifact · Recon Vault</span>
+      <nav aria-label="Rechtliches und Ressourcen">
+        <a href="{{ url_for('main.api_docs') }}">API-Dokumentation</a>
+        <a href="{{ github_url }}" rel="noopener">GitHub</a>
+        {% if legal_pages().imprint %}<a href="{{ url_for('main.imprint') }}">Impressum</a>{% endif %}
+        {% if legal_pages().privacy %}<a href="{{ url_for('main.privacy') }}">Datenschutz</a>{% endif %}
+      </nav>
+    </footer>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

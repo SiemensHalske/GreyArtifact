@@ -24,7 +24,7 @@ form.addEventListener("submit", async (event) => {
       }),
     });
     setAccessToken(payload.access_token);
-    window.location.assign("/");
+    window.location.assign("/dashboard");
   } catch (error) {
     clearAccessToken();
     message.textContent =
@@ -42,6 +42,6 @@ initializeShell();
 
 if (hasAccessToken()) {
   apiRequest("/api/v1/auth/me")
-    .then(() => window.location.assign("/"))
+    .then(() => window.location.assign("/dashboard"))
     .catch(() => clearAccessToken());
 }

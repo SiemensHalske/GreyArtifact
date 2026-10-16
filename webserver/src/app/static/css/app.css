@@ -2778,3 +2778,50 @@ html[data-theme="light"] .status-app {
     padding: 28px 0 48px;
   }
 }
+
+/* Collapsible explanations inside panels */
+.panel-help {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: var(--field);
+  font-size: 0.8rem;
+}
+
+.panel-help summary {
+  color: var(--accent-readable);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.panel-help dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0 0;
+}
+
+.panel-help dt {
+  font-weight: 750;
+}
+
+.panel-help dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.panel-help p {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 560px) {
+  .panel-help dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel-help dd {
+    margin-bottom: 6px;
+  }
+}

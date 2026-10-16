@@ -324,8 +324,9 @@ separately from the server.
 and `/datenschutz` render the plain-text files named by `IMPRINT_FILE` and
 `PRIVACY_FILE`. Keep those files outside the repository, since an imprint
 contains the operator's postal address. Without a file the routes answer 404
-and the footer and sidebar links are hidden; the text is escaped and line
-breaks are kept.
+and the footer and sidebar links are hidden. The files may use a small
+Markdown subset (`##`/`###` headings, paragraphs with kept line breaks, `- `
+lists, `**bold**`, `` `code` ``); every line is escaped before markup is added.
 
 ### System status
 

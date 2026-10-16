@@ -2727,8 +2727,26 @@ html[data-theme="light"] .status-app {
 .legal-text {
   margin-bottom: 28px;
   line-height: 1.6;
-  white-space: pre-line;
   overflow-wrap: anywhere;
+}
+
+.legal-text h2 {
+  margin: 28px 0 8px;
+  font-size: 1.15rem;
+}
+
+.legal-text h3 {
+  margin: 20px 0 6px;
+  font-size: 1rem;
+}
+
+.legal-text p,
+.legal-text ul {
+  margin: 0 0 12px;
+}
+
+.legal-text ul {
+  padding-left: 1.3rem;
 }
 
 .sidebar-legal {

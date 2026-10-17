@@ -301,7 +301,8 @@ For an unattended cron job, allow exactly that dump command without a password
 ```
 
 Do not widen the rule to arbitrary `pg_dump` arguments: `-f` would let the user
-write files as `postgres`. `backup.sh` never deletes older backups; `prune_backups.sh` below does.
+write files as `postgres`. `backup.sh` never deletes older backups;
+`prune_backups.sh` below does.
 
 On a host that is not always on, run `backup_if_due.sh` hourly instead of
 `backup.sh` at a fixed time. It starts `backup.sh` only when the newest

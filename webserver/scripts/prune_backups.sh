@@ -12,8 +12,9 @@ set -euo pipefail
 usage="usage: prune_backups.sh <output-directory> <keep-days>"
 output_root=${1:?$usage}
 keep_days=${2:?$usage}
-if [[ ! "$keep_days" =~ ^[1-9][0-9]*$ ]]; then
-    echo "keep-days must be a positive whole number" >&2
+# Capped at five digits so keep_days * 86400 cannot overflow below.
+if [[ ! "$keep_days" =~ ^[1-9][0-9]{0,4}$ ]]; then
+    echo "keep-days must be a whole number from 1 to 99999" >&2
     exit 2
 fi
 if [[ ! -d "$output_root" ]]; then

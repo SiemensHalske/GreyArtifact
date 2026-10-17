@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services.authorization import principal_has_scope_permission
 from app.services.login_throttle import LoginThrottle
+from app.services.role_management import LastOwnerError, record_account_event
 from support import InMemoryArtifactStorage
 
 
@@ -1168,6 +1169,306 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertEqual(update_response.status_code, 404)
         self.assertEqual(audit_response.status_code, 404)
+
+    def _owner_scope_with_member(self, role="viewer"):
+        with self.app.app_context():
+            scope = Scope(scope_id=uuid4(), name=f"scope-{uuid4()}")
+            db.session.add(scope)
+            db.session.flush()
+            self._add_owner_membership(scope)
+            db.session.commit()
+            scope_id = scope.scope_id
+
+        headers = self._headers(self._login())
+        member_username = f"member-{secrets.token_hex(8)}"
+        member_password = secrets.token_urlsafe(24)
+        created = self.client.post(
+            f"/api/v1/scopes/{scope_id}/members",
+            headers=headers,
+            json={
+                "username": member_username,
+                "password": member_password,
+                "display_name": "Member",
+                "role": role,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        return (
+            scope_id,
+            headers,
+            created.get_json()["member"]["principal_id"],
+            member_username,
+            member_password,
+        )
+
+    def _audit_event_types(self, scope_id, headers):
+        response = self.client.get(
+            f"/api/v1/scopes/{scope_id}/role-audit?page=1&per_page=50",
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        return [event["event_type"] for event in response.get_json()["events"]]
+
+    def test_owner_can_deactivate_and_reactivate_member(self):
+        scope_id, headers, member_id, username, password = self._owner_scope_with_member()
+        member_login = self.client.post(
+            "/api/v1/auth/login", json={"username": username, "password": password}
+        )
+        member_headers = self._headers(member_login.get_json()["access_token"])
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=member_headers).status_code, 200
+        )
+
+        deactivated = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}/active",
+            headers=headers,
+            json={"is_active": False},
+        )
+        self.assertEqual(deactivated.status_code, 200)
+        self.assertFalse(deactivated.get_json()["member"]["is_active"])
+        # The existing token stops working at once and login is refused.
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=member_headers).status_code, 401
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login", json={"username": username, "password": password}
+            ).status_code,
+            401,
+        )
+
+        reactivated = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}/active",
+            headers=headers,
+            json={"is_active": True},
+        )
+        self.assertEqual(reactivated.status_code, 200)
+        self.assertTrue(reactivated.get_json()["member"]["is_active"])
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login", json={"username": username, "password": password}
+            ).status_code,
+            200,
+        )
+        # Tokens issued before the deactivation stay revoked.
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=member_headers).status_code, 401
+        )
+        self.assertEqual(
+            self._audit_event_types(scope_id, headers)[:2],
+            ["account_reactivated", "account_deactivated"],
+        )
+
+    def test_owner_can_reset_member_password(self):
+        scope_id, headers, member_id, username, password = self._owner_scope_with_member()
+        old_token = self.client.post(
+            "/api/v1/auth/login", json={"username": username, "password": password}
+        ).get_json()["access_token"]
+        new_password = secrets.token_urlsafe(24)
+
+        too_short = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}/password",
+            headers=headers,
+            json={"new_password": "short"},
+        )
+        self.assertEqual(too_short.status_code, 400)
+
+        reset = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}/password",
+            headers=headers,
+            json={"new_password": new_password},
+        )
+        self.assertEqual(reset.status_code, 200)
+        self.assertEqual(reset.get_json()["status"], "password_reset")
+        self.assertEqual(
+            self.client.get("/api/v1/auth/me", headers=self._headers(old_token)).status_code,
+            401,
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login", json={"username": username, "password": password}
+            ).status_code,
+            401,
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/auth/login", json={"username": username, "password": new_password}
+            ).status_code,
+            200,
+        )
+        self.assertEqual(self._audit_event_types(scope_id, headers)[0], "password_reset")
+
+    def test_owner_can_rename_and_remove_member(self):
+        scope_id, headers, member_id, username, password = self._owner_scope_with_member(
+            role="analyst"
+        )
+        renamed = self.client.patch(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}",
+            headers=headers,
+            json={"display_name": "  Renamed member  "},
+        )
+        self.assertEqual(renamed.status_code, 200)
+        self.assertEqual(renamed.get_json()["member"]["display_name"], "Renamed member")
+        self.assertEqual(renamed.get_json()["member"]["role"], "analyst")
+
+        removed = self.client.delete(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}", headers=headers
+        )
+        self.assertEqual(removed.status_code, 200)
+        self.assertEqual(removed.get_json()["status"], "removed")
+        members = self.client.get(f"/api/v1/scopes/{scope_id}/members", headers=headers)
+        self.assertNotIn(
+            member_id, [item["principal_id"] for item in members.get_json()["members"]]
+        )
+        again = self.client.delete(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}", headers=headers
+        )
+        self.assertEqual(again.status_code, 404)
+
+        audit = self.client.get(
+            f"/api/v1/scopes/{scope_id}/role-audit?page=1&per_page=50", headers=headers
+        ).get_json()["events"]
+        self.assertEqual(audit[0]["event_type"], "member_removed")
+        self.assertEqual(audit[0]["roles_before"], ["analyst"])
+        self.assertEqual(audit[0]["roles_after"], [])
+        self.assertEqual(audit[1]["event_type"], "display_name_updated")
+        # The account itself is kept; it only lost its membership.
+        with self.app.app_context():
+            self.assertIsNotNone(db.session.get(Principal, UUID(member_id)))
+
+    def test_owner_cannot_change_own_account_through_admin_actions(self):
+        scope_id, headers, _member_id, _username, _password = self._owner_scope_with_member()
+        base = f"/api/v1/scopes/{scope_id}/members/{self.principal_id}"
+        requests = [
+            ("put", f"{base}/active", {"is_active": False}),
+            ("put", f"{base}/password", {"new_password": secrets.token_urlsafe(24)}),
+            ("delete", base, None),
+        ]
+        for method, path, body in requests:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path, headers=headers, json=body)
+                self.assertEqual(response.status_code, 409)
+                self.assertEqual(response.get_json()["error"]["code"], "cannot_modify_self")
+        # Renaming oneself is harmless and allowed.
+        renamed = self.client.patch(
+            base, headers=headers, json={"display_name": "Owner"}
+        )
+        self.assertEqual(renamed.status_code, 200)
+
+    def test_last_active_owner_is_protected(self):
+        scope_id, headers, member_id, _username, _password = self._owner_scope_with_member(
+            role="owner"
+        )
+        # Two owners: deactivating the second one is fine.
+        deactivated = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{member_id}/active",
+            headers=headers,
+            json={"is_active": False},
+        )
+        self.assertEqual(deactivated.status_code, 200)
+        # The remaining active owner can no longer demote themself; a
+        # deactivated owner does not count.
+        demoted = self.client.put(
+            f"/api/v1/scopes/{scope_id}/members/{self.principal_id}/roles",
+            headers=headers,
+            json={"role": "analyst", "additional_roles": []},
+        )
+        self.assertEqual(demoted.status_code, 409)
+        self.assertEqual(demoted.get_json()["error"]["code"], "last_owner_required")
+
+        # Only owners hold membership.manage, so the caller is always an active
+        # owner; the deactivation guard is checked on the service directly.
+        with self.app.app_context():
+            caller = db.session.get(Principal, self.principal_id)
+            with self.assertRaises(LastOwnerError):
+                record_account_event(
+                    principal=caller,
+                    changed_by=None,
+                    event_type="account_deactivated",
+                )
+            db.session.rollback()
+
+        # Reactivating the second owner makes the first one demotable again.
+        self.assertEqual(
+            self.client.put(
+                f"/api/v1/scopes/{scope_id}/members/{member_id}/active",
+                headers=headers,
+                json={"is_active": True},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.put(
+                f"/api/v1/scopes/{scope_id}/members/{self.principal_id}/roles",
+                headers=headers,
+                json={"role": "analyst", "additional_roles": []},
+            ).status_code,
+            200,
+        )
+
+    def test_account_actions_require_management_of_all_member_scopes(self):
+        scope_id, headers, member_id, _username, _password = self._owner_scope_with_member()
+        with self.app.app_context():
+            other_scope = Scope(scope_id=uuid4(), name=f"other-{uuid4()}")
+            db.session.add(other_scope)
+            db.session.flush()
+            db.session.add(
+                ScopeMembership(
+                    scope_id=other_scope.scope_id,
+                    principal_id=UUID(member_id),
+                    role_id=2,
+                )
+            )
+            db.session.commit()
+
+        base = f"/api/v1/scopes/{scope_id}/members/{member_id}"
+        requests = [
+            ("patch", base, {"display_name": "Elsewhere"}),
+            ("put", f"{base}/active", {"is_active": False}),
+            ("put", f"{base}/password", {"new_password": secrets.token_urlsafe(24)}),
+        ]
+        for method, path, body in requests:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path, headers=headers, json=body)
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(
+                    response.get_json()["error"]["code"], "member_managed_elsewhere"
+                )
+        # Removing the member from this scope stays possible.
+        self.assertEqual(self.client.delete(base, headers=headers).status_code, 200)
+
+    def test_member_account_actions_require_membership_manage(self):
+        with self.app.app_context():
+            scope = Scope(scope_id=uuid4(), name=f"scope-{uuid4()}")
+            other_principal = Principal(
+                principal_id=uuid4(),
+                username=f"member-{uuid4()}",
+                password_hash=generate_password_hash("not-a-login-password"),
+            )
+            db.session.add_all([scope, other_principal])
+            db.session.flush()
+            self._add_readable_membership(scope)
+            db.session.add(
+                ScopeMembership(
+                    scope_id=scope.scope_id,
+                    principal_id=other_principal.principal_id,
+                    role_id=1,
+                )
+            )
+            db.session.commit()
+            base = f"/api/v1/scopes/{scope.scope_id}/members/{other_principal.principal_id}"
+
+        headers = self._headers(self._login())
+        requests = [
+            ("patch", base, {"display_name": "Nope"}),
+            ("put", f"{base}/active", {"is_active": False}),
+            ("put", f"{base}/password", {"new_password": secrets.token_urlsafe(24)}),
+            ("delete", base, None),
+        ]
+        for method, path, body in requests:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path, headers=headers, json=body)
+                self.assertEqual(response.status_code, 404)
 
     def test_registration_creates_inactive_principal_and_pending_request(self):
         registration_username = f"registration-{secrets.token_hex(8)}"

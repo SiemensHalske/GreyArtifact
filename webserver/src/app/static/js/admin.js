@@ -25,17 +25,38 @@ const ROLE_LABELS = Object.fromEntries([
 ]);
 
 const EVENT_LABELS = {
+  account_deactivated: "Konto gesperrt",
+  account_reactivated: "Konto entsperrt",
   bootstrap: "Bootstrap",
+  display_name_updated: "Anzeigename geändert",
   member_created: "Konto erstellt",
+  member_removed: "Aus Arbeitsbereich entfernt",
   migration_baseline: "System-Baseline",
+  password_reset: "Passwort zurückgesetzt",
   registration_approved: "Registrierung freigegeben",
   roles_updated: "Rollen geändert",
+};
+
+// Account events leave the roles unchanged; the audit shows them without an arrow.
+const ACCOUNT_EVENTS = new Set([
+  "account_deactivated",
+  "account_reactivated",
+  "display_name_updated",
+  "password_reset",
+]);
+
+const ACCOUNT_ERRORS = {
+  cannot_modify_self: "Dein eigenes Konto änderst du über das Profil.",
+  last_owner_required: "Ein Arbeitsbereich braucht mindestens einen aktiven Owner.",
+  member_managed_elsewhere:
+    "Diese Person ist auch in Arbeitsbereichen, die du nicht verwaltest.",
 };
 
 const state = {
   activeScopeId: null,
   auditPage: 1,
   auditPages: 0,
+  currentPrincipalId: null,
   scopes: [],
 };
 
@@ -119,6 +140,68 @@ const createRoleBadges = (member) => {
   return badges;
 };
 
+const createAccountField = (caption, input, buttonText, action) => {
+  const label = document.createElement("label");
+  const text = document.createElement("span");
+  const button = document.createElement("button");
+  label.className = "member-role-field";
+  text.textContent = caption;
+  label.append(text, input);
+  button.type = "button";
+  button.className = "button member-account-button";
+  button.dataset.action = action;
+  button.textContent = buttonText;
+  return [label, button];
+};
+
+const createAccountEditor = (member, isSelf) => {
+  const editor = document.createElement("div");
+  const displayName = document.createElement("input");
+  editor.className = "member-account-editor";
+  displayName.name = "display_name";
+  displayName.maxLength = 255;
+  displayName.autocomplete = "off";
+  displayName.value = member.display_name || "";
+  displayName.placeholder = member.username;
+  editor.append(
+    ...createAccountField("Anzeigename", displayName, "Namen speichern", "save-name"),
+  );
+
+  if (isSelf) {
+    const hint = document.createElement("p");
+    hint.className = "member-self-hint";
+    hint.textContent =
+      "Passwort und Sperre deines eigenen Kontos verwaltest du nicht hier, sondern im Profil.";
+    editor.append(hint);
+    return editor;
+  }
+
+  const password = document.createElement("input");
+  const dangerActions = document.createElement("div");
+  const toggleActive = document.createElement("button");
+  const remove = document.createElement("button");
+  password.type = "password";
+  password.name = "new_password";
+  password.minLength = 12;
+  password.autocomplete = "new-password";
+  password.placeholder = "mindestens 12 Zeichen";
+  editor.append(
+    ...createAccountField("Neues Passwort", password, "Passwort setzen", "reset-password"),
+  );
+  dangerActions.className = "member-danger-actions";
+  toggleActive.type = "button";
+  toggleActive.className = "button member-account-button";
+  toggleActive.dataset.action = "toggle-active";
+  toggleActive.textContent = member.is_active ? "Konto sperren" : "Konto entsperren";
+  remove.type = "button";
+  remove.className = "button member-danger-button";
+  remove.dataset.action = "remove-member";
+  remove.textContent = "Aus Arbeitsbereich entfernen";
+  dangerActions.append(toggleActive, remove);
+  editor.append(dangerActions);
+  return editor;
+};
+
 const renderMembers = (members) => {
   elements.memberList.replaceChildren();
   elements.memberCount.textContent = String(members.length);
@@ -141,6 +224,7 @@ const renderMembers = (members) => {
     const status = document.createElement("span");
     const edit = document.createElement("button");
     const editor = document.createElement("div");
+    const roleEditor = document.createElement("div");
     const baseRoleLabel = document.createElement("label");
     const baseRoleCaption = document.createElement("span");
     const baseRole = createRoleSelect(member.role);
@@ -149,21 +233,26 @@ const renderMembers = (members) => {
     const operatorText = document.createElement("span");
     const editorActions = document.createElement("div");
     const save = document.createElement("button");
+    const footer = document.createElement("div");
     const cancel = document.createElement("button");
     const message = document.createElement("p");
     const visibleName = member.display_name || member.username;
+    const isSelf = member.principal_id === state.currentPrincipalId;
 
     row.className = "admin-member-row";
     row.dataset.principalId = member.principal_id;
+    row.dataset.username = member.username;
+    row.dataset.isActive = String(member.is_active);
     summary.className = "member-summary";
     avatar.className = "member-avatar";
     identity.className = "member-identity";
     status.className = `account-status${member.is_active ? " is-active" : ""}`;
     edit.type = "button";
     edit.className = "button member-edit-button";
-    edit.dataset.action = "edit-roles";
-    edit.textContent = "Rollen bearbeiten";
-    editor.className = "member-role-editor is-hidden";
+    edit.dataset.action = "edit-member";
+    edit.textContent = "Bearbeiten";
+    editor.className = "member-editor is-hidden";
+    roleEditor.className = "member-role-editor";
     baseRoleLabel.className = "member-role-field";
     baseRoleCaption.textContent = "Basisrolle";
     baseRole.name = "role";
@@ -176,11 +265,12 @@ const renderMembers = (members) => {
     save.type = "button";
     save.className = "button button-primary";
     save.dataset.action = "save-roles";
-    save.textContent = "Speichern";
+    save.textContent = "Rollen speichern";
+    footer.className = "member-editor-footer";
     cancel.type = "button";
     cancel.className = "button member-cancel-button";
-    cancel.dataset.action = "cancel-roles";
-    cancel.textContent = "Abbrechen";
+    cancel.dataset.action = "cancel-edit";
+    cancel.textContent = "Schließen";
     message.className = "form-message member-role-message";
     message.setAttribute("role", "status");
 
@@ -198,8 +288,10 @@ const renderMembers = (members) => {
     );
     baseRoleLabel.append(baseRoleCaption, baseRole);
     operatorLabel.append(operator, operatorText);
-    editorActions.append(save, cancel);
-    editor.append(baseRoleLabel, operatorLabel, editorActions, message);
+    editorActions.append(save);
+    roleEditor.append(baseRoleLabel, operatorLabel, editorActions);
+    footer.append(message, cancel);
+    editor.append(roleEditor, createAccountEditor(member, isSelf), footer);
     row.append(summary, editor);
     elements.memberList.append(row);
   });
@@ -247,7 +339,9 @@ const renderAudit = (payload, append = false) => {
     heading.className = "audit-heading";
     title.textContent = EVENT_LABELS[event.event_type] || event.event_type;
     meta.textContent = `${formatTimestamp(event.changed_at)} · ${actorName}`;
-    change.textContent = `${principalName}: ${roleListLabel(event.roles_before)} → ${roleListLabel(event.roles_after)}`;
+    change.textContent = ACCOUNT_EVENTS.has(event.event_type)
+      ? `${principalName} (@${event.principal.username}) · ${roleListLabel(event.roles_after)}`
+      : `${principalName}: ${roleListLabel(event.roles_before)} → ${roleListLabel(event.roles_after)}`;
     heading.append(title, meta);
     item.append(heading, change);
     elements.auditList.append(item);
@@ -405,6 +499,7 @@ const loadAdmin = async () => {
     apiRequest("/api/v1/scopes/manageable"),
   ]);
   renderIdentity(mePayload.principal);
+  state.currentPrincipalId = mePayload.principal.principal_id;
   state.scopes = scopesPayload.scopes;
   setAdminNavigationVisible(state.scopes.length > 0);
   elements.adminLoginPanel.classList.add("is-hidden");
@@ -527,35 +622,16 @@ const handleMemberCreation = async (event) => {
   }
 };
 
-const handleMemberRoleAction = async (event) => {
-  const button = event.target.closest("button[data-action]");
-  if (!button || !state.activeScopeId) {
-    return;
-  }
-  const row = button.closest(".admin-member-row");
-  const editor = row.querySelector(".member-role-editor");
-  const message = row.querySelector(".member-role-message");
-  if (button.dataset.action === "edit-roles") {
-    editor.classList.remove("is-hidden");
-    button.classList.add("is-hidden");
-    return;
-  }
-  if (button.dataset.action === "cancel-roles") {
-    await loadScope(state.activeScopeId);
-    return;
-  }
-  if (button.dataset.action !== "save-roles") {
-    return;
-  }
-
-  message.textContent = "";
-  editor.querySelectorAll("button, select, input").forEach((control) => {
-    control.disabled = true;
-  });
-  try {
-    await apiRequest(
-      `/api/v1/scopes/${state.activeScopeId}/members/${row.dataset.principalId}/roles`,
-      {
+// Builds the request for one member action; null means the action was cancelled
+// or its input is incomplete (the message is then already shown).
+const memberActionRequest = (action, row, message) => {
+  const editor = row.querySelector(".member-editor");
+  const base = `/api/v1/scopes/${state.activeScopeId}/members/${row.dataset.principalId}`;
+  const username = row.dataset.username;
+  if (action === "save-roles") {
+    return {
+      path: `${base}/roles`,
+      options: {
         method: "PUT",
         body: JSON.stringify({
           role: editor.querySelector('select[name="role"]').value,
@@ -564,8 +640,95 @@ const handleMemberRoleAction = async (event) => {
             : [],
         }),
       },
-    );
-    elements.memberMessage.textContent = "Rollen wurden aktualisiert.";
+      done: "Rollen wurden aktualisiert.",
+      failed: "Die Rollen konnten nicht aktualisiert werden.",
+    };
+  }
+  if (action === "save-name") {
+    const displayName = editor.querySelector('input[name="display_name"]').value.trim();
+    return {
+      path: base,
+      options: {method: "PATCH", body: JSON.stringify({display_name: displayName || null})},
+      done: `Anzeigename von @${username} wurde gespeichert.`,
+      failed: "Der Anzeigename konnte nicht gespeichert werden.",
+    };
+  }
+  if (action === "reset-password") {
+    const password = editor.querySelector('input[name="new_password"]').value;
+    if (password.length < 12) {
+      message.textContent = "Das neue Passwort braucht mindestens 12 Zeichen.";
+      return null;
+    }
+    if (!window.confirm(`Neues Passwort für @${username} setzen? Alle Sitzungen der Person enden.`)) {
+      return null;
+    }
+    return {
+      path: `${base}/password`,
+      options: {method: "PUT", body: JSON.stringify({new_password: password})},
+      done: `Neues Passwort für @${username} gesetzt. Gib es der Person auf sicherem Weg weiter.`,
+      failed: "Das Passwort konnte nicht gesetzt werden.",
+    };
+  }
+  if (action === "toggle-active") {
+    const activate = row.dataset.isActive !== "true";
+    if (!activate && !window.confirm(`Konto @${username} sperren? Die Person wird sofort abgemeldet.`)) {
+      return null;
+    }
+    return {
+      path: `${base}/active`,
+      options: {method: "PUT", body: JSON.stringify({is_active: activate})},
+      done: activate ? `Konto @${username} ist wieder aktiv.` : `Konto @${username} ist gesperrt.`,
+      failed: "Der Kontostatus konnte nicht geändert werden.",
+    };
+  }
+  if (action === "remove-member") {
+    if (
+      !window.confirm(
+        `@${username} aus diesem Arbeitsbereich entfernen? Das Konto selbst bleibt bestehen; `
+          + "soll die Person gar keinen Zugang mehr haben, sperre das Konto.",
+      )
+    ) {
+      return null;
+    }
+    return {
+      path: base,
+      options: {method: "DELETE"},
+      done: `@${username} wurde aus dem Arbeitsbereich entfernt.`,
+      failed: "Das Mitglied konnte nicht entfernt werden.",
+    };
+  }
+  return null;
+};
+
+const handleMemberAction = async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button || !state.activeScopeId) {
+    return;
+  }
+  const row = button.closest(".admin-member-row");
+  const editor = row.querySelector(".member-editor");
+  const message = row.querySelector(".member-role-message");
+  if (button.dataset.action === "edit-member") {
+    editor.classList.remove("is-hidden");
+    button.classList.add("is-hidden");
+    return;
+  }
+  if (button.dataset.action === "cancel-edit") {
+    await loadScope(state.activeScopeId);
+    return;
+  }
+
+  message.textContent = "";
+  const request = memberActionRequest(button.dataset.action, row, message);
+  if (!request) {
+    return;
+  }
+  editor.querySelectorAll("button, select, input").forEach((control) => {
+    control.disabled = true;
+  });
+  try {
+    await apiRequest(request.path, request.options);
+    elements.memberMessage.textContent = request.done;
     await loadScope(state.activeScopeId);
   } catch (error) {
     if (error.status === 401) {
@@ -573,10 +736,7 @@ const handleMemberRoleAction = async (event) => {
       elements.adminLoginMessage.textContent = "Deine Sitzung ist abgelaufen.";
       return;
     }
-    message.textContent =
-      error.status === 409
-        ? "Der letzte Owner eines Arbeitsbereichs kann nicht herabgestuft werden."
-        : "Die Rollen konnten nicht aktualisiert werden.";
+    message.textContent = ACCOUNT_ERRORS[error.code] || request.failed;
     editor.querySelectorAll("button, select, input").forEach((control) => {
       control.disabled = false;
     });
@@ -602,7 +762,7 @@ initializeShell();
 elements.adminLoginForm.addEventListener("submit", handleLogin);
 elements.registrationList.addEventListener("click", handleRegistrationDecision);
 elements.memberForm.addEventListener("submit", handleMemberCreation);
-elements.memberList.addEventListener("click", handleMemberRoleAction);
+elements.memberList.addEventListener("click", handleMemberAction);
 elements.auditLoadMore.addEventListener("click", handleAuditLoadMore);
 elements.scopeSelect.addEventListener("change", (event) => {
   elements.memberMessage.textContent = "";

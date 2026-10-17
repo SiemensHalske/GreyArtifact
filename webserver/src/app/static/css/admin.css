@@ -9,6 +9,7 @@
 .admin-member-list > *,
 .member-summary > *,
 .member-role-editor > *,
+.member-account-editor > *,
 .audit-item > * {
   min-width: 0;
 }
@@ -249,7 +250,8 @@
 .approval-role select:focus,
 .admin-form-grid input:focus,
 .admin-form-grid select:focus,
-.member-role-field select:focus {
+.member-role-field select:focus,
+.member-role-field input:focus {
   border-color: var(--viridian);
   box-shadow: 0 0 0 3px rgba(64, 130, 109, 0.14);
 }
@@ -435,7 +437,8 @@
   text-transform: uppercase;
 }
 
-.member-role-field select {
+.member-role-field select,
+.member-role-field input {
   height: 39px;
   padding: 0 10px;
   border: 1px solid var(--line);
@@ -467,8 +470,55 @@
 }
 
 .member-role-message {
+  margin: 0;
+}
+
+.member-account-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.member-account-button,
+.member-danger-button {
+  min-height: 39px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+}
+
+.member-danger-button:hover,
+.member-danger-button:focus-visible {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.member-danger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 7px;
+}
+
+.member-self-hint {
   grid-column: 1 / -1;
   margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.member-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
 }
 
 .account-status {
@@ -634,7 +684,12 @@
   }
 
   .member-role-editor,
+  .member-account-editor,
   .audit-item {
     grid-template-columns: 1fr;
+  }
+
+  .member-danger-actions .button {
+    flex: 1 1 100%;
   }
 }

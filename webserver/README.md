@@ -26,7 +26,7 @@ MinIO, the web application, and the separate runner:
 docker compose up --build
 ```
 
-PostgreSQL applies migrations 001–012 only when its volume is created for the
+PostgreSQL applies migrations 001–014 only when its volume is created for the
 first time. MinIO is built from the official, pinned
 `RELEASE.2025-10-15T17-29-55Z` source because anonymous official community
 images are no longer reliably distributed. Review the MinIO AGPLv3 obligations
@@ -134,6 +134,16 @@ recommendation with its Fennec decision. `GET …/import-batches/<batch-id>/clai
 returns counts per claim and state, and one asset's claims with `asset_id`.
 They are display only: GreyArtifact never executes a candidate; execution stays
 with an engagement and the controlled runner.
+
+Enable the account administration audit events with:
+
+```text
+sudo -u postgres psql -d recon -X -v ON_ERROR_STOP=1 \
+  < database/migrations/014_account_audit_events.sql
+```
+
+It only widens the allowed `event_type` values of `recon.role_assignment_audit`;
+no grants change.
 
 After applying the migrations, grant an existing application role the least
 privileges required by identity management, imports, evidence, engagements,
@@ -254,9 +264,18 @@ The dedicated administration workspace is available at `/admin`. It only lists
 scopes in which the signed-in principal currently has `membership.manage` and
 provides the registration queue, member overview, role approval, rejection, and
 direct account creation. Owners can change a member's base role and explicit
-Pipeline Operator assignment after creation. The last owner of a scope cannot
-be demoted. Every effective role change is recorded in an append-only audit and
-is visible in the administration workspace. The short-lived access token is
+Pipeline Operator assignment after creation, edit a member's display name,
+set a new password, deactivate or reactivate an account, and remove a member
+from the scope. A deactivated account cannot sign in and its tokens stop
+working at once; a password reset revokes all of the member's tokens. Removing
+a member keeps the account, so deactivate it when the person should lose access
+entirely. Display name, password and activation apply to the whole account and
+therefore require `membership.manage` in every scope the member belongs to;
+nobody can deactivate, reset or remove their own account there. A scope must
+keep at least one active owner: its last active owner cannot be demoted,
+removed or deactivated. Every effective role change and account action is
+recorded in an append-only audit and is visible in the administration
+workspace. The short-lived access token is
 shared between the dashboard, project workspace, and admin page through
 tab-scoped session storage and is removed on logout. Selecting a project on the
 dashboard opens its dedicated workspace at `/projects/<project-id>`; imports,
@@ -478,5 +497,5 @@ PYTHONPATH=webserver/src .venv/bin/python -m unittest \
 ```
 
 The integration suite checks a fresh install of all migrations, upgrade from
-004 through 012, the owner-only `recon.execute` and `sensitive.read`
+004 through 014, the owner-only `recon.execute` and `sensitive.read`
 permissions, and real MinIO object deduplication.

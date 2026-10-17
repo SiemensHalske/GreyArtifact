@@ -301,7 +301,7 @@ For an unattended cron job, allow exactly that dump command without a password
 ```
 
 Do not widen the rule to arbitrary `pg_dump` arguments: `-f` would let the user
-write files as `postgres`. `backup.sh` never deletes older backups.
+write files as `postgres`. `backup.sh` never deletes older backups; `prune_backups.sh` below does.
 
 On a host that is not always on, run `backup_if_due.sh` hourly instead of
 `backup.sh` at a fixed time. It starts `backup.sh` only when the newest
@@ -310,6 +310,16 @@ hours, so a night with the host switched off does not skip the backup:
 
 ```text
 17 * * * * BACKUP_GPG_RECIPIENT=<key-id> webserver/scripts/backup_if_due.sh /srv/data/greyartifact-backups 24
+```
+
+`prune_backups.sh <output-directory> <keep-days>` deletes completed backups
+older than the given number of days, but always keeps the newest completed one.
+Leftovers of interrupted runs (no `SHA256SUMS`) are deleted after one day.
+Chain it to `backup_if_due.sh` with `&&`, so nothing is deleted while backups
+are failing:
+
+```text
+17 * * * * BACKUP_GPG_RECIPIENT=<key-id> webserver/scripts/backup_if_due.sh /srv/data/greyartifact-backups 24 && webserver/scripts/prune_backups.sh /srv/data/greyartifact-backups 30
 ```
 
 `webserver/scripts/restore.sh <backup-directory>` verifies the checksums,

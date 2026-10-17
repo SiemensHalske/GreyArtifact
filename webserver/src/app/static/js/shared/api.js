@@ -49,6 +49,7 @@ export const apiRequest = async (path, options = {}) => {
   if (!response.ok) {
     const error = new Error(payload.error?.message || "Anfrage fehlgeschlagen.");
     error.status = response.status;
+    error.code = payload.error?.code;
     throw error;
   }
   return payload;

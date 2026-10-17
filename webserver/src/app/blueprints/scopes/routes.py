@@ -21,10 +21,13 @@ from app.models import (
     ScopeMembership,
 )
 from app.schemas import (
+    MemberActiveUpdateSchema,
     MemberCreateSchema,
     MemberEnvelopeSchema,
+    MemberPasswordResetSchema,
     MembersEnvelopeSchema,
     PagePaginationQuerySchema,
+    ProfileUpdateSchema,
     ProjectCreateSchema,
     ProjectEnvelopeSchema,
     ProjectsEnvelopeSchema,
@@ -40,6 +43,10 @@ from app.services.role_management import (
     InvalidRoleSelection,
     LastOwnerError,
     MembershipNotFoundError,
+    member_role_codes,
+    member_scope_ids,
+    record_account_event,
+    remove_member,
     replace_member_roles,
     split_role_codes,
     validate_role_selection,
@@ -458,6 +465,179 @@ def update_member_roles(payload: dict, scope_id: str, principal_id: str):
         )
 
     return jsonify({"member": _serialize_member(principal, role_codes)})
+
+
+def _managed_member(scope_id: str, principal_id: str):
+    """The principal and its roles, if it is a member of a scope the caller manages."""
+    parsed_scope_id = _manageable_scope_id(scope_id)
+    parsed_principal_id = _scope_id_or_none(principal_id)
+    if parsed_scope_id is None or parsed_principal_id is None:
+        return None, None, []
+    principal = db.session.get(Principal, parsed_principal_id)
+    roles = member_role_codes(parsed_scope_id, parsed_principal_id) if principal else []
+    if principal is None or not roles:
+        return None, None, []
+    return parsed_scope_id, principal, roles
+
+
+def _account_change_refusal(principal: Principal):
+    """Account-wide changes need management rights in every scope of the member."""
+    if principal.principal_id == current_user.principal_id:
+        return error_response(
+            "cannot_modify_self",
+            "Use the profile page to change your own account.",
+            409,
+        )
+    for member_scope_id in member_scope_ids(principal.principal_id):
+        if not principal_has_scope_permission(
+            current_user.principal_id,
+            member_scope_id,
+            "membership.manage",
+        ):
+            return error_response(
+                "member_managed_elsewhere",
+                "The member also belongs to a scope you do not manage.",
+                403,
+            )
+    return None
+
+
+@bp.patch("/<scope_id>/members/<principal_id>")
+@jwt_required()
+@bp.doc(security=[{"bearerAuth": []}])
+@bp.arguments(ProfileUpdateSchema, error_status_code=400)
+@bp.response(200, MemberEnvelopeSchema)
+@bp.alt_response(403, schema="Error", description="Member belongs to an unmanaged scope")
+@bp.alt_response(404, schema="Error", description="Member not found")
+def update_member_profile(payload: dict, scope_id: str, principal_id: str):
+    _scope_id, principal, roles = _managed_member(scope_id, principal_id)
+    if principal is None:
+        return error_response("not_found", "Member not found.", 404)
+    # Changing one's own display name is harmless; only foreign accounts need
+    # rights in all of their scopes.
+    if principal.principal_id != current_user.principal_id:
+        refusal = _account_change_refusal(principal)
+        if refusal is not None:
+            return refusal
+
+    display_name = payload["display_name"]
+    display_name = display_name.strip() if display_name else None
+    if display_name != principal.display_name:
+        principal.display_name = display_name
+        record_account_event(
+            principal=principal,
+            changed_by=current_user.principal_id,
+            event_type="display_name_updated",
+        )
+        db.session.commit()
+    return jsonify({"member": _serialize_member(principal, roles)})
+
+
+@bp.put("/<scope_id>/members/<principal_id>/active")
+@jwt_required()
+@bp.doc(security=[{"bearerAuth": []}])
+@bp.arguments(MemberActiveUpdateSchema, error_status_code=400)
+@bp.response(200, MemberEnvelopeSchema)
+@bp.alt_response(403, schema="Error", description="Member belongs to an unmanaged scope")
+@bp.alt_response(404, schema="Error", description="Member not found")
+@bp.alt_response(409, schema="Error", description="Own account or last active owner")
+def update_member_active(payload: dict, scope_id: str, principal_id: str):
+    """Deactivate or reactivate an account.
+
+    A deactivated account cannot sign in, and its tokens stop working at once.
+    """
+    _scope_id, principal, roles = _managed_member(scope_id, principal_id)
+    if principal is None:
+        return error_response("not_found", "Member not found.", 404)
+    refusal = _account_change_refusal(principal)
+    if refusal is not None:
+        return refusal
+
+    is_active = payload["is_active"]
+    if is_active != principal.is_active:
+        try:
+            record_account_event(
+                principal=principal,
+                changed_by=current_user.principal_id,
+                event_type="account_reactivated" if is_active else "account_deactivated",
+            )
+        except LastOwnerError:
+            db.session.rollback()
+            return error_response(
+                "last_owner_required",
+                "The scope must retain at least one active owner.",
+                409,
+            )
+        principal.is_active = is_active
+        if not is_active:
+            principal.credentials_version += 1
+        db.session.commit()
+    return jsonify({"member": _serialize_member(principal, roles)})
+
+
+@bp.put("/<scope_id>/members/<principal_id>/password")
+@jwt_required()
+@bp.doc(security=[{"bearerAuth": []}])
+@bp.arguments(MemberPasswordResetSchema, error_status_code=400)
+@bp.response(200, StatusSchema)
+@bp.alt_response(403, schema="Error", description="Member belongs to an unmanaged scope")
+@bp.alt_response(404, schema="Error", description="Member not found")
+@bp.alt_response(409, schema="Error", description="Own account")
+def reset_member_password(payload: dict, scope_id: str, principal_id: str):
+    """Set a new password for a member; all of the member's tokens are revoked."""
+    _scope_id, principal, _roles = _managed_member(scope_id, principal_id)
+    if principal is None:
+        return error_response("not_found", "Member not found.", 404)
+    refusal = _account_change_refusal(principal)
+    if refusal is not None:
+        return refusal
+
+    principal.password_hash = generate_password_hash(payload["new_password"])
+    principal.credentials_version += 1
+    record_account_event(
+        principal=principal,
+        changed_by=current_user.principal_id,
+        event_type="password_reset",
+    )
+    db.session.commit()
+    return jsonify({"status": "password_reset"})
+
+
+@bp.delete("/<scope_id>/members/<principal_id>")
+@jwt_required()
+@bp.doc(security=[{"bearerAuth": []}])
+@bp.response(200, StatusSchema)
+@bp.alt_response(404, schema="Error", description="Member not found")
+@bp.alt_response(409, schema="Error", description="Own account or last active owner")
+def delete_member(scope_id: str, principal_id: str):
+    """Remove a member from this scope; the account itself is kept."""
+    parsed_scope_id, principal, _roles = _managed_member(scope_id, principal_id)
+    if principal is None:
+        return error_response("not_found", "Member not found.", 404)
+    if principal.principal_id == current_user.principal_id:
+        return error_response(
+            "cannot_modify_self",
+            "You cannot remove yourself from a scope.",
+            409,
+        )
+    try:
+        remove_member(
+            scope_id=parsed_scope_id,
+            principal_id=principal.principal_id,
+            changed_by=current_user.principal_id,
+        )
+        db.session.commit()
+    except MembershipNotFoundError:
+        db.session.rollback()
+        return error_response("not_found", "Member not found.", 404)
+    except LastOwnerError:
+        db.session.rollback()
+        return error_response(
+            "last_owner_required",
+            "The scope must retain at least one active owner.",
+            409,
+        )
+    return jsonify({"status": "removed"})
 
 
 @bp.get("/<scope_id>/role-audit")

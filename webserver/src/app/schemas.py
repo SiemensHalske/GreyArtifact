@@ -126,6 +126,18 @@ class RoleUpdateSchema(RoleSelectionSchema):
     )
 
 
+class MemberActiveUpdateSchema(Schema):
+    is_active = fields.Boolean(required=True)
+
+
+class MemberPasswordResetSchema(Schema):
+    new_password = fields.String(
+        required=True,
+        load_only=True,
+        validate=[validate.Length(min=12, max=4096), nonblank],
+    )
+
+
 class MemberSchema(Schema):
     principal_id = fields.UUID(required=True)
     username = fields.String(required=True)

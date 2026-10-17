@@ -188,6 +188,26 @@ class PostgresMinioIntegrationTestCase(unittest.TestCase):
                         "SELECT to_regclass('recon.ml_prediction_reviews')"
                     ).fetchone()[0]
                 )
+                migration = next(
+                    (root / "database" / "migrations").glob("013_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT to_regclass('recon.ml_claims')"
+                    ).fetchone()[0]
+                )
+                migration = next(
+                    (root / "database" / "migrations").glob("014_*.sql")
+                )
+                connection.execute(migration.read_text(encoding="utf-8"))
+                self.assertIn(
+                    "'password_reset'",
+                    connection.execute(
+                        "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+                        "WHERE conname = 'role_assignment_audit_event_type_valid'"
+                    ).fetchone()[0],
+                )
         finally:
             with psycopg.connect(**admin, autocommit=True) as connection:
                 connection.execute(

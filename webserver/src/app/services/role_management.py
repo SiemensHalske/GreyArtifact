@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select, text
 
 from app.extensions import db
-from app.models import Role, RoleAssignmentAudit, Scope, ScopeMembership
+from app.models import Principal, Role, RoleAssignmentAudit, Scope, ScopeMembership
 
 
 BASE_ROLE_CODES = ("viewer", "researcher", "analyst", "owner")
@@ -16,6 +16,15 @@ AUDIT_EVENT_TYPES = (
     "member_created",
     "registration_approved",
     "roles_updated",
+)
+# Account-level events keep the member's roles unchanged (before == after),
+# except member_removed, which records the roles that were taken away.
+ACCOUNT_EVENT_TYPES = (
+    "member_removed",
+    "account_deactivated",
+    "account_reactivated",
+    "password_reset",
+    "display_name_updated",
 )
 
 
@@ -74,6 +83,137 @@ def _lock_scope_role_assignments(scope_id: UUID) -> None:
     )
 
 
+def _other_active_owner_exists(scope_id: UUID, principal_id: UUID) -> bool:
+    # A deactivated owner cannot sign in, so only active owners keep a scope
+    # manageable.
+    other_owner = db.session.execute(
+        select(ScopeMembership.principal_id)
+        .join(Role, Role.role_id == ScopeMembership.role_id)
+        .join(Principal, Principal.principal_id == ScopeMembership.principal_id)
+        .where(
+            ScopeMembership.scope_id == scope_id,
+            ScopeMembership.principal_id != principal_id,
+            Role.code == "owner",
+            Principal.is_active.is_(True),
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    return other_owner is not None
+
+
+def member_role_codes(scope_id: UUID, principal_id: UUID) -> list[str]:
+    """The member's roles in the scope, base role first; empty if none."""
+    codes = db.session.execute(
+        select(Role.code)
+        .join(ScopeMembership, ScopeMembership.role_id == Role.role_id)
+        .where(
+            ScopeMembership.scope_id == scope_id,
+            ScopeMembership.principal_id == principal_id,
+        )
+    ).scalars().all()
+    if not codes:
+        return []
+    base_role, additional_roles = split_role_codes(list(codes))
+    return ordered_role_codes(base_role, tuple(additional_roles))
+
+
+def member_scope_ids(principal_id: UUID) -> list[UUID]:
+    return sorted(
+        set(
+            db.session.execute(
+                select(ScopeMembership.scope_id).where(
+                    ScopeMembership.principal_id == principal_id
+                )
+            ).scalars().all()
+        )
+    )
+
+
+def _add_account_audit(
+    *,
+    scope_id: UUID,
+    principal_id: UUID,
+    changed_by: UUID | None,
+    event_type: str,
+    roles_before: list[str],
+    roles_after: list[str],
+) -> None:
+    if event_type not in ACCOUNT_EVENT_TYPES:
+        raise ValueError("Unsupported account audit event type.")
+    db.session.add(
+        RoleAssignmentAudit(
+            audit_id=uuid4(),
+            scope_id=scope_id,
+            principal_id=principal_id,
+            changed_by=changed_by,
+            event_type=event_type,
+            roles_before=roles_before,
+            roles_after=roles_after,
+            changed_at=datetime.now(timezone.utc),
+        )
+    )
+
+
+def remove_member(*, scope_id: UUID, principal_id: UUID, changed_by: UUID) -> list[str]:
+    """Delete all of the member's roles in the scope; returns the removed roles."""
+    _lock_scope_role_assignments(scope_id)
+    memberships = db.session.execute(
+        select(ScopeMembership).where(
+            ScopeMembership.scope_id == scope_id,
+            ScopeMembership.principal_id == principal_id,
+        )
+    ).scalars().all()
+    if not memberships:
+        raise MembershipNotFoundError
+    removed = member_role_codes(scope_id, principal_id)
+    if "owner" in removed and not _other_active_owner_exists(scope_id, principal_id):
+        raise LastOwnerError
+    for membership in memberships:
+        db.session.delete(membership)
+    _add_account_audit(
+        scope_id=scope_id,
+        principal_id=principal_id,
+        changed_by=changed_by,
+        event_type="member_removed",
+        roles_before=removed,
+        roles_after=[],
+    )
+    return removed
+
+
+def record_account_event(
+    *, principal: Principal, changed_by: UUID, event_type: str
+) -> None:
+    """Audit an account-wide change in every scope the principal belongs to.
+
+    Deactivation is refused while the principal is the last active owner of
+    any of those scopes.
+    """
+    scope_ids = member_scope_ids(principal.principal_id)
+    # Sorted lock order keeps concurrent multi-scope changes deadlock free.
+    for scope_id in scope_ids:
+        _lock_scope_role_assignments(scope_id)
+    roles_by_scope = {
+        scope_id: member_role_codes(scope_id, principal.principal_id)
+        for scope_id in scope_ids
+    }
+    if event_type == "account_deactivated":
+        for scope_id, roles in roles_by_scope.items():
+            if "owner" in roles and not _other_active_owner_exists(
+                scope_id, principal.principal_id
+            ):
+                raise LastOwnerError
+    for scope_id, roles in roles_by_scope.items():
+        _add_account_audit(
+            scope_id=scope_id,
+            principal_id=principal.principal_id,
+            changed_by=changed_by,
+            event_type=event_type,
+            roles_before=roles,
+            roles_after=roles,
+        )
+
+
 def replace_member_roles(
     *,
     scope_id: UUID,
@@ -114,18 +254,12 @@ def replace_member_roles(
     if current_set == desired_set:
         return desired_codes, False
 
-    if "owner" in current_set and "owner" not in desired_set:
-        owner_role = db.session.execute(
-            select(Role).where(Role.code == "owner")
-        ).scalar_one()
-        owner_ids = db.session.execute(
-            select(ScopeMembership.principal_id).where(
-                ScopeMembership.scope_id == scope_id,
-                ScopeMembership.role_id == owner_role.role_id,
-            )
-        ).scalars().all()
-        if len(set(owner_ids)) <= 1:
-            raise LastOwnerError
+    if (
+        "owner" in current_set
+        and "owner" not in desired_set
+        and not _other_active_owner_exists(scope_id, principal_id)
+    ):
+        raise LastOwnerError
 
     roles = db.session.execute(
         select(Role).where(Role.code.in_(desired_codes))
